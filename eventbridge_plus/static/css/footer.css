@@ -1,0 +1,30 @@
+/* Footer Divider */
+.footer-divider { background-color: var(--brand-cream); height: 24px; }
+
+/* Footer Base */
+.footer-brand-green {
+  background-color: var(--brand-green);
+  padding-block: var(--footer-bar-py) !important;
+  text-align: center;
+  color: #fff;
+}
+
+/* Font + Brand */
+.footer-brand-green .brand-text {
+  font-family: var(--font-chewy) !important;
+  font-size: var(--footer-font-size);
+}
+.footer-brand-green a,
+.footer-brand-green .nav-link {
+  font-family: var(--font-main) !important;
+  font-size: var(--footer-font-size);
+}
+
+/* Responsive */
+@media (max-width: 575.98px) {
+  .footer-brand-green .container {
+    flex-direction: column;
+    text-align: center;
+    gap: .5rem;
+  }
+}

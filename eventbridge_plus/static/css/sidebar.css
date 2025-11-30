@@ -1,0 +1,226 @@
+/* This height value corresponds to the default height of Bootstrap navbar (about 56px) */
+:root{
+  --nav-h: 56px;
+  --aside-lg:360px
+}
+
+/* ---------- Sidebar basic style (desktop fixed; mobile slides out) ---------- */
+.sidebar{
+  width: 260px;
+  background:#fff;
+  border-right:1px solid #eee;
+  min-height: calc(100vh - var(--nav-h));
+  position: sticky;
+  top: var(--nav-h);
+  padding: 1rem;
+  display:flex;
+  flex-direction: column;
+  gap:.5rem;
+  transition: width .2s ease;
+  overflow: hidden;
+  font-family: 'Urbanist', system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* Section title (light gray, small, uppercase) */
+.sidebar .nav-section{
+  padding:.5rem .75rem;
+  color:#6c757d;
+  text-transform:uppercase;
+  font-size:.85rem;
+  letter-spacing:.04em;
+  font-weight: 800; 
+  margin-top: 1rem;
+  margin-bottom: .5rem;
+}
+
+/* Sidebar links (rounded corners; hover/active states) */
+.sidebar .nav-link{
+  color:#212529;
+  border-radius:.75rem;
+  padding:1rem .75rem;
+  display:flex;
+  align-items:center;
+  gap:.8rem;
+  font-family: 'Urbanist', sans-serif;
+  font-weight: 600; 
+  font-size: 1rem;
+  margin-bottom: .25rem;
+}
+.sidebar .nav-link:hover{
+  background:#f5f6f7;
+}
+.sidebar .nav-link.active{
+  background:#e7f3ea;               
+  color:var(--brand-green-2);
+  font-weight:700; 
+}
+.sidebar .nav-link i{
+  font-size:1.25rem;
+  color: currentColor;
+}
+
+/* Make the middle section scrollable without moving fixed header/footer blocks */
+.scrollarea{
+  overflow-y:auto;
+  overflow-x:hidden;
+  max-height: calc(100vh - var(--nav-h) - 120px); /* Fine-tune bottom reserve based on real content */
+}
+
+/* ---------- Collapsible group (btn-toggle + nested links) ---------- */
+.btn-toggle{
+  padding:.5rem .75rem;
+  font-weight:800; 
+  color: var(--bs-emphasis-color);
+  background-color: transparent;
+  width: 100%;
+  text-align: left;
+  border:0;
+  font-family: 'Urbanist', sans-serif;
+  font-size: 1rem;
+  margin-bottom: .25rem;
+}
+.btn-toggle:hover,
+.btn-toggle:focus{
+  color: rgba(var(--bs-emphasis-color-rgb), .85);
+  background-color: var(--bs-tertiary-bg);
+}
+
+/* Small arrow on the left (rotates when expanded) */
+.btn-toggle::before{
+  width: 1.25em;
+  line-height: 0;
+  content: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='rgba%280,0,0,.5%29' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M5 14l6-6-6-6'/%3e%3c/svg%3e");
+  transition: transform .35s ease;
+  transform-origin: .5em 50%;
+  display:inline-block;
+  margin-right:.25rem;
+}
+[data-bs-theme="dark"] .btn-toggle::before{
+  /* Switch arrow to white in dark theme (only if data-bs-theme="dark" is enabled) */
+  content: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='rgba%28255,255,255,.5%29' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M5 14l6-6-6-6'/%3e%3c/svg%3e");
+}
+.btn-toggle[aria-expanded="true"]{
+  color: rgba(var(--bs-emphasis-color-rgb), .85);
+}
+.btn-toggle[aria-expanded="true"]::before{
+  transform: rotate(90deg);
+}
+
+/* Second-level links (more compact, indented) */
+.btn-toggle-nav a{
+  padding:.5rem .75rem;
+  margin-top:.25rem;
+  margin-left:1.25rem;   /* Visual indent aligned with the arrow */
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  border-radius:.5rem;
+  font-family: 'Urbanist', sans-serif;
+  font-weight: 600; 
+  font-size: .95rem;
+  width: 100%;
+}
+.btn-toggle-nav a:hover,
+.btn-toggle-nav a:focus{
+  background-color: var(--bs-tertiary-bg);
+}
+
+/* ---------- Mobile: convert sidebar to a slide-out panel ---------- */
+@media (max-width: 991.98px){ 
+  .sidebar{
+    position: fixed;
+    top: var(--nav-h);
+    left: 0;
+    bottom: 0;
+    z-index: 1030;
+    transform: translateX(-100%); /* Hidden off-canvas by default */
+    transition: transform .2s ease-in-out;
+    min-height: auto; 
+  }
+  .sidebar.show{
+    transform: none; /* Slide in (visible) */
+  }
+  /* Translucent backdrop: click to close sidebar */
+  .sidebar-backdrop{
+    position: fixed;
+    inset: var(--nav-h) 0 0 0;
+    background: rgba(0,0,0,.15);
+    display: none;
+    z-index: 1029;
+  }
+  .sidebar-backdrop.show{
+    display:block;
+  }
+}
+
+
+/* ---- Override Bootstrap nav-pills blue in the sidebar; use brand green tones ---- */
+.sidebar .nav-pills .nav-link {
+  color: #212529;
+}
+.sidebar .nav-pills .nav-link:hover {
+  background: #f5f6f7;
+}
+.sidebar .nav-pills .nav-link.active,
+.sidebar .nav-pills .show > .nav-link {
+  background: #e7f3ea !important;           
+  color: var(--brand-green-2) !important;    
+  border-color: transparent;
+}
+
+/* (Optional) Remove heavy focus outline */
+.sidebar .nav-link:focus {
+  box-shadow: none;
+}
+
+/* === Desktop: collapsible left sidebar (toggle .collapsed) === */
+.sidebar.collapsed{
+  width: 90px;
+  min-width: 50px;
+}
+
+/* When collapsed: hide labels and collapsible groups; keep icons only */
+.sidebar.collapsed .nav-section{ display: none; }
+.sidebar.collapsed .btn-toggle,
+.sidebar.collapsed .collapse{ display: none !important; }
+.sidebar .nav-link span{ transition: opacity .15s ease; }
+.sidebar.collapsed .nav-link span{ display: none; }
+
+@media (min-width: 1200px){
+  .two-col-layout:not(.aside-hidden) [data-role="aside"]{
+    max-width: var(--aside-lg);
+    flex: 0 0 var(--aside-lg);
+  }
+  .two-col-layout:not(.aside-hidden) [data-role="main"]{
+    flex: 1 1 auto;
+    max-width: none;
+  }
+}
+
+
+.two-col-layout.aside-hidden [data-role="aside"]{
+  display: none !important;
+}
+.two-col-layout.aside-hidden [data-role="main"]{
+  flex: 0 0 100% !important;
+  max-width: 100% !important;
+}
+
+.aside-handle{
+  position: absolute;
+  top: .75rem;
+  right: -14px;                 
+  width: 28px; height: 28px;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 2px 6px rgba(0,0,0,.08);
+  display: none;            
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+@media (min-width: 992px){
+  .aside-handle{ display: inline-flex; }
+}

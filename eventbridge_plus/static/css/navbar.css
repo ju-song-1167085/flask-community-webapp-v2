@@ -1,0 +1,384 @@
+/* ---------- Font tokens ---------- */
+:root {
+  /* Brand font tokens used across navbar */
+  --font-chewy: 'Urbanist', cursive; /* Decorative logo font */
+  --font-main: 'Urbanist', system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; /* Main UI font */
+  --nav-link-size: 1.10rem;  /* Default size for navbar links */
+  --brand-text-size: 1.75rem; /* Default size for logo text */
+  --footer-font-size: 1rem;  /* Footer text size (not directly navbar, but included here) */
+}
+
+/* ---------- Navbar background ---------- */
+.navbar {
+  background: var(--brand-green); /* Green background */
+  padding-block: var(--bar-py) !important; /* Control navbar height using CSS token */
+}
+
+/* ---------- Logo / Brand text ---------- */
+.navbar .navbar-brand,
+.brand-text.chewy {
+  font-family: var(--font-chewy) !important; /* Apply Urbanist font only to brand text */
+  font-size: var(--brand-text-size); /* Size of brand text */
+  line-height: 1;
+  letter-spacing: .5px; /* Slight spacing for readability */
+  text-rendering: optimizeLegibility; /* Better text rendering */
+  -webkit-font-smoothing: antialiased; /* Smooth font rendering on WebKit */
+  -moz-osx-font-smoothing: grayscale; /* Smooth font rendering on Firefox */
+  color: #fff !important; /* Ensure white color */
+}
+
+/* ---------- Animated icon ---------- */
+.navbar .ride {
+  display: inline-block;
+  font-size: 34px; /* Icon size */
+  color: var(--brand-accent-hover) !important; /* Orange accent color */
+}
+
+@keyframes ride {
+  /* Bicycle wobble animation */
+  0% { transform: translateX(-2px) rotate(-3deg); }
+  50% { transform: translateX(2px) rotate(3deg); }
+  100% { transform: translateX(-2px) rotate(-3deg); }
+}
+
+/* ---------- Navigation divider ---------- */
+.navbar .nav-divider {
+  width: 1px;
+  height: 24px;
+  background-color: rgba(255, 255, 255, 0.3);
+  margin: 0 0.5rem;
+  align-self: center;
+}
+
+@media (max-width: 991.98px) {
+  .navbar .nav-divider {
+    display: none !important;
+  }
+}
+
+/* ---------- Navigation links ---------- */
+.navbar .nav-link {
+  font-family: var(--font-main) !important; /* Use main font for links */
+  font-size: var(--nav-link-size); /* Font size */
+  font-weight: 600; /* Bold text for emphasis */
+  padding-block: .30rem; /* Adjust vertical padding */
+  line-height: 1.2; /* Control line height */
+  text-rendering: optimizeLegibility; /* Better text rendering */
+  -webkit-font-smoothing: antialiased; /* Smooth font rendering on WebKit */
+  -moz-osx-font-smoothing: grayscale; /* Smooth font rendering on Firefox */
+  color: rgba(255, 255, 255, 0.9) !important; /* Slightly more opaque white */
+}
+
+/* Remove focus outline from navbar links */
+.navbar .nav-link:focus,
+.navbar .nav-link:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* ---------- Badges inside navbar ---------- */
+.navbar .badge {
+  font-size: .75rem; /* Smaller badge size for compact layout */
+}
+
+/* ---------- Logo size on larger screens ---------- */
+@media (min-width: 992px){
+  .navbar .brand_logo { 
+    height: 26px; /* Logo image height for desktops */
+  }
+}
+
+/* ---------- Navbar container ---------- */
+.navbar .container {
+  max-width: 1140px; /* Keep navbar contents centered and aligned */
+}
+
+/* ---------- Dropdown menu positioning ---------- */
+.navbar .dropdown-menu {
+  min-width: 200px;
+  background-color: white !important;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  margin-top: 0;
+  padding: 0;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px) scale(0.95);
+  overflow: visible;
+  max-height: none;
+}
+
+@media (max-width: 991.98px) {
+  .navbar .dropdown-menu {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    transform: translateY(-10px) scale(0.95) !important;
+    position: static !important;
+    display: none !important;
+    box-shadow: none !important;
+    border: none !important;
+    background-color: transparent !important;
+    margin-top: 0.5rem;
+    max-height: 0;
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
+  
+  .navbar .dropdown-menu.show {
+    opacity: 1 !important;
+    visibility: visible !important;
+    transform: translateY(0) scale(1) !important;
+    display: block !important;
+    max-height: 500px;
+  }
+}
+
+.navbar .dropdown-menu.show {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+}
+
+/* Hover effect for dropdown */
+.navbar .nav-item.dropdown:hover .dropdown-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+  display: block;
+}
+
+/* Dropdown menu items */
+.navbar .dropdown-menu .dropdown-item {
+  color: var(--brand-green) !important;
+  font-weight: 600 !important;
+  padding: 0.5rem 1rem;
+  transition: all 0.2s ease;
+  transform: translateX(-5px);
+  opacity: 1;
+}
+
+.navbar .dropdown-menu.show .dropdown-item {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+@media (max-width: 991.98px) {
+  .navbar .dropdown-menu .dropdown-item {
+    opacity: 1 !important;
+    transform: translateX(0) !important;
+    color: rgba(255, 255, 255, 0.9) !important;
+    padding: 0.75rem 1rem;
+    border-bottom: none !important;
+  }
+  
+  .navbar .dropdown-menu .dropdown-item:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    color: #fff !important;
+  }
+  
+  .navbar .dropdown-menu .dropdown-divider {
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+}
+
+/* Staggered animation for dropdown items */
+.navbar .dropdown-menu.show .dropdown-item:nth-child(1) { transition-delay: 0.05s; }
+.navbar .dropdown-menu.show .dropdown-item:nth-child(2) { transition-delay: 0.1s; }
+.navbar .dropdown-menu.show .dropdown-item:nth-child(3) { transition-delay: 0.15s; }
+.navbar .dropdown-menu.show .dropdown-item:nth-child(4) { transition-delay: 0.2s; }
+.navbar .dropdown-menu.show .dropdown-item:nth-child(5) { transition-delay: 0.25s; }
+.navbar .dropdown-menu.show .dropdown-item:nth-child(6) { transition-delay: 0.3s; }
+
+.navbar .dropdown-menu .dropdown-item:hover,
+.navbar .dropdown-menu .dropdown-item:focus {
+  background-color: rgba(30, 94, 50, 0.1) !important;
+  color: var(--brand-green) !important;
+}
+
+.navbar .dropdown-menu .dropdown-divider {
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Remove dropdown toggle arrow on desktop */
+.navbar .dropdown-toggle::after {
+  display: none !important;
+}
+
+@media (max-width: 991.98px) {
+  .navbar .dropdown-toggle::after {
+    display: inline-block !important;
+    content: ">";
+    font-size: 0.8rem;
+    margin-left: 0.3rem;
+    transition: transform 0.2s ease;
+    vertical-align: middle;
+    opacity: 0.7;
+    font-weight: bold;
+  }
+  
+  .navbar .dropdown-toggle[aria-expanded="true"]::after {
+    transform: rotate(90deg);
+    opacity: 1;
+  }
+}
+
+/* ---------- Nested Dropdown (Submenu) ---------- */
+.dropdown-submenu {
+  position: relative;
+}
+
+.dropdown-submenu > .dropdown-menu {
+  position: absolute;
+  top: 0;
+  left: 100%;
+  margin-top: -1px;
+  margin-left: 0;
+  min-width: 180px;
+  background-color: white !important;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  padding: 0;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  transform: translateX(-10px) scale(0.95);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 1000;
+  display: none !important;
+  overflow: visible;
+  max-height: none;
+  pointer-events: none;
+  width: 0;
+  height: 0;
+  margin-left: 5px;
+}
+
+.dropdown-submenu:hover > .dropdown-menu {
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: translateX(0) scale(1);
+  display: block !important;
+  pointer-events: auto;
+  width: auto;
+  height: auto;
+  min-width: 180px;
+}
+
+.dropdown-submenu:not(:hover) > .dropdown-menu {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  transform: translateX(-10px) scale(0.95);
+  display: none !important;
+  pointer-events: none;
+  transition: all 0.1s ease-out;
+  width: 0;
+  height: 0;
+}
+
+.dropdown-submenu > .dropdown-menu:empty {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none;
+  width: 0;
+  height: 0;
+}
+
+@media (max-width: 991.98px) {
+  .dropdown-submenu > .dropdown-menu {
+    position: static !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    transform: none !important;
+    display: none !important;
+    pointer-events: none;
+    width: auto;
+    height: auto;
+    min-width: auto;
+    margin-left: 1rem;
+    margin-top: 0.5rem;
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    max-height: 0;
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
+  
+  .dropdown-submenu:hover > .dropdown-menu,
+  .dropdown-submenu > .dropdown-menu.show {
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: block !important;
+    pointer-events: auto;
+    max-height: 300px;
+  }
+  
+  .dropdown-submenu .dropdown-item {
+    color: rgba(255, 255, 255, 0.8) !important;
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
+  }
+  
+  .dropdown-submenu .dropdown-item:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    color: #fff !important;
+  }
+  
+  .dropdown-submenu > .dropdown-item::after {
+    content: ">";
+    font-size: 0.7rem;
+    float: right;
+    margin-top: 0.1rem;
+    transition: transform 0.2s ease;
+    opacity: 0.6;
+    font-weight: bold;
+  }
+  
+  .dropdown-submenu:hover > .dropdown-item::after,
+  .dropdown-submenu > .dropdown-item[aria-expanded="true"]::after {
+    transform: rotate(90deg);
+    opacity: 0.8;
+  }
+}
+
+.dropdown-submenu .dropdown-item {
+  color: var(--brand-green) !important;
+  font-weight: 600 !important;
+  padding: 0.5rem 1rem;
+  transition: background-color 0.2s ease;
+  display: block;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.dropdown-submenu .dropdown-item:hover {
+  background-color: rgba(30, 94, 50, 0.1) !important;
+  color: var(--brand-green) !important;
+}
+
+/* Remove any scrollbars from dropdown menus */
+.navbar .dropdown-menu {
+  overflow: visible !important;
+  max-height: none !important;
+}
+
+/* Ensure dropdown doesn't overflow on small screens */
+@media (max-width: 576px) {
+  .navbar .dropdown-menu {
+    right: 10px !important;
+    left: 10px !important;
+    min-width: auto;
+    width: calc(100vw - 20px);
+  }
+}
+
+/* ---------- Sparkle stars: solid yellow (no gradient/animation) ---------- */
+.navbar .sparkle {
+  font-size: 30px;
+  color: #ffd700 !important; /* solid gold/yellow */
+  text-shadow: none; /* remove glow */
+  animation: none; /* no animation */
+}
