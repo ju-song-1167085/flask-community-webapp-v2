@@ -1,0 +1,600 @@
+{% extends 'base.html' %}
+{% block title %}Notifications{% endblock %}
+
+{% block head_extra %}
+<style>
+    .noti-container {
+        max-width: 900px;
+        margin: 30px auto;
+        padding: 0 20px;
+    }
+    
+    .actions-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+    
+    .status-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .unread-badge {
+        background: var(--brand-green);
+        color: white;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 14px;
+        font-weight: 600;
+    }
+    
+    .unread-badge.zero {
+        background: #e8f5e9;
+        color: #2e7d32;
+    }
+    
+    .warning-badge {
+        background: #fff3cd;
+        color: #856404;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 14px;
+        font-weight: 600;
+        border: 1px solid #ffc107;
+    }
+    
+    .filter-buttons {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    
+    .category-btn {
+        padding: 8px 16px;
+        border: 2px solid #e0e0e0;
+        background: white;
+        border-radius: 20px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.3s;
+        text-decoration: none;
+        color: #333;
+    }
+    
+    .category-btn:hover {
+        border-color: var(--brand-green);
+        color: var(--brand-green);
+    }
+    
+    .category-btn.active {
+        background: var(--brand-green);
+        color: white;
+        border-color: var(--brand-green);
+    }
+    
+    .noti-list {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .noti-card {
+        border-left: 4px solid transparent;
+        transition: all 0.3s;
+    }
+    
+    .noti-card:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+        transform: translateY(-2px);
+    }
+    
+    .noti-card.unread {
+        background: #fff8f0;
+        border-left-color: #ec7a08;
+    }
+    
+    .noti-card.read {
+        background: #fafafa;
+        opacity: 0.95;
+    }
+    
+    .category-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+    
+    .category-badge.event {
+        background: #FFE0B2;
+        color: #E65100;
+    }
+    
+    .category-badge.group {
+        background: #C8E6C9;
+        color: #2E7D32;
+    }
+    
+    .category-badge.volunteer {
+        background: #F8BBD0;
+        color: #C2185B;
+    }
+    
+    .category-badge.system {
+        background: #E1BEE7;
+        color: #6A1B9A;
+    }
+    
+    .noti-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 15px;
+        padding-top: 15px;
+        border-top: 1px solid #eee;
+    }
+    
+    .noti-actions {
+        display: flex;
+        gap: 10px;
+    }
+    
+    .btn-small {
+        padding: 6px 14px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 13px;
+        transition: all 0.3s;
+        font-weight: 600;
+    }
+    
+    .btn-read {
+        background: var(--brand-green);
+        color: white;
+    }
+    
+    .btn-read:hover {
+        background: var(--brand-green-dark);
+        color: white;
+    }
+    
+    .btn-delete {
+        background: #dc3545;
+        color: white;
+    }
+    
+    .btn-delete:hover {
+        background: #c82333;
+        color: white;
+    }
+    
+    .btn-outline-primary {
+        background: transparent;
+        color: #007bff;
+        border: 1px solid #007bff;
+    }
+    
+    .btn-outline-primary:hover {
+        background: #007bff;
+        color: white;
+    }
+    
+    .btn-outline-success {
+        background: transparent;
+        color: #28a745;
+        border: 1px solid #28a745;
+    }
+    
+    .btn-outline-success:hover {
+        background: #28a745;
+        color: white;
+    }
+    
+    .btn-outline-info {
+        background: transparent;
+        color: #17a2b8;
+        border: 1px solid #17a2b8;
+    }
+    
+    .btn-outline-info:hover {
+        background: #17a2b8;
+        color: white;
+    }
+    
+    .empty-icon {
+        font-size: 64px;
+        margin-bottom: 20px;
+    }
+    
+    @media (max-width: 768px) {
+        .noti-container {
+            padding: 0 10px;
+        }
+        
+        .actions-bar {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .noti-footer {
+            flex-direction: column;
+            gap: 10px;
+            align-items: flex-start;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="noti-container">
+    <!-- ========================================
+         Page Header
+         ======================================== -->
+    <div class="card">
+        <div class="card-header">
+            <h1 class="page-title">🔔 Notifications</h1>
+        </div>
+        <div class="card-body">
+            <div class="actions-bar">
+                <div class="status-info">
+                    <!-- Notification disabled warning -->
+                    {% if not is_notifications_enabled %}
+                    <span class="warning-badge">
+                        ⚠️ Notifications are disabled
+                    </span>
+                    {% endif %}
+                    
+                    <!-- Unread count -->
+                    {% if unread_count > 0 %}
+                    <span class="btn btn-sm" style="background-color: #ec7a08; color: white; border-color: #ec7a08; pointer-events: none; cursor: default;">
+                        <i class="bi bi-bell-fill me-1"></i>{{ unread_count }} unread
+                    </span>
+                    {% else %}
+                    <span class="btn btn-sm btn-outline-success disabled" style="pointer-events: none; cursor: default;">
+                        <i class="bi bi-check-circle me-1"></i>All caught up
+                    </span>
+                    {% endif %}
+                </div>
+                
+                <!-- Action buttons -->
+                <div class="d-flex gap-2">
+                    {% if notifications %}
+                    <button class="btn btn-sm btn-danger" onclick="deleteAllNotis()">
+                        <i class="bi bi-trash me-1"></i>Delete All
+                </button>
+                {% endif %}
+                
+                    {% if unread_count > 0 %}
+                    <button class="btn btn-sm btn-success" onclick="markAllAsRead()">
+                        <i class="bi bi-envelope-open me-1"></i>Mark All as Read
+                </button>
+                {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- ========================================
+         Category Filter
+         ======================================== -->
+    <div class="card">
+        <div class="card-body">
+            <div class="form-label">Filter by Category</div>
+            <div class="filter-buttons">
+            <a href="/noti?category=all" 
+               class="category-btn {% if selected_category == 'all' %}active{% endif %}">
+                All
+            </a>
+            <a href="/noti?category=event" 
+               class="category-btn {% if selected_category == 'event' %}active{% endif %}">
+                📅 Events
+            </a>
+            <a href="/noti?category=group" 
+               class="category-btn {% if selected_category == 'group' %}active{% endif %}">
+                👥 Groups
+            </a>
+            <a href="/noti?category=volunteer" 
+               class="category-btn {% if selected_category == 'volunteer' %}active{% endif %}">
+                🤝 Volunteer
+            </a>
+            <a href="/noti?category=system" 
+               class="category-btn {% if selected_category == 'system' %}active{% endif %}">
+                ⚙️ System
+            </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- ========================================
+         Notification List
+         ======================================== -->
+    
+    <style>
+      .noti-card.escalated { background: #fff5f5; border-left: 4px solid #dc3545; }
+      .noti-card.escalated h4 { color: #dc3545; }
+      .badge-escalated { background: #dc3545; color:#fff; font-size:.75rem; border-radius:999px; padding:.15rem .5rem; }
+    </style>
+    <div class="noti-list">
+        {% if notifications %}
+            {% for noti in notifications %}
+            {% set platform_role = session.get('platform_role') %}
+            {% set _title = (noti.title or '')|lower %}
+            {% set _message = (noti.message or '')|lower %}
+            {% set is_escalated = (platform_role == 'super_admin') and ('help' in _title or 'helpdesk' in _title or 'help request' in _title or 'help request' in _message) and ('high' in _title or 'high' in _message or 'escalated' in _message) %}
+            <div class="card noti-card {% if not noti.is_read %}unread{% else %}read{% endif %} {% if is_escalated %}escalated{% endif %}" 
+                 id="noti-{{ noti.notification_id }}">
+                <div class="card-body">
+                    <!-- Action buttons (top-right corner) -->
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div></div>
+                        <div class="d-flex gap-2">
+                            <!-- Delete button (minus icon) -->
+                            <button class="btn btn-sm btn-danger" 
+                                    onclick="deleteNoti({{ noti.notification_id }})"
+                                    title="Delete notification">
+                                <i class="bi bi-dash-circle"></i>
+                            </button>
+                            
+                            <!-- Read/Unread toggle button -->
+                            <button class="btn btn-sm {% if noti.is_read %}btn-secondary{% else %}btn-success{% endif %}" 
+                                    onclick="toggleReadStatus({{ noti.notification_id }}, {% if noti.is_read %}false{% else %}true{% endif %})"
+                                    title="{% if noti.is_read %}Mark as unread{% else %}Mark as read{% endif %}">
+                                <i class="bi {% if noti.is_read %}bi-envelope{% else %}bi-envelope-open{% endif %}"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <!-- Category Badge -->
+                    <span class="category-badge {{ noti.category }}">
+                        {% if noti.category == 'event' %}📅 Event
+                        {% elif noti.category == 'group' %}👥 Group
+                        {% elif noti.category == 'volunteer' %}🤝 Volunteer
+                        {% elif noti.category == 'system' %}⚙️ System
+                        {% else %}🔔 Other{% endif %}
+                    </span>
+                    
+                    <!-- Title & Message -->
+                    <h4 class="text-brand">{{ noti.title or 'No Title' }} {% if is_escalated %}<span class="badge-escalated ms-2">Escalated</span>{% endif %}</h4>
+                    <p class="subtle">{{ noti.message or 'No Message' }}</p>
+                    
+                    <!-- Footer -->
+                    <div class="noti-footer">
+                        <div class="noti-actions">
+                            <!-- Action Links based on category and user role -->
+                            {% set platform_role = session.get('platform_role') %}
+                            {% set group_role = session.get('group_role') %}
+                            
+                            {% if noti.category == 'group' %}
+                                {% if platform_role == 'super_admin' %}
+                                    <a href="/admin/groups?tab=pending&sort=newest&search=" class="btn-small btn-outline-primary me-2">
+                                        <i class="bi bi-gear me-1"></i>Manage Groups
+                                    </a>
+                                {% elif platform_role == 'support_technician' %}
+                                    <a href="/admin/groups?tab=pending&sort=newest&search=" class="btn-small btn-outline-primary me-2">
+                                        <i class="bi bi-tools me-1"></i>View Groups
+                                    </a>
+                                {% endif %}
+                                
+                                {% if 'Application' in noti.title or 'Approved' in noti.title or 'Rejected' in noti.title %}
+                                    <a href="/my/applications" class="btn-small btn-outline-success me-2">
+                                        <i class="bi bi-people me-1"></i>My Applications
+                                    </a>
+                                {% elif noti.related_id %}
+                                    <a href="/groups/{{ noti.related_id }}" class="btn-small btn-outline-info me-2">
+                                        <i class="bi bi-eye me-1"></i>View Group
+                                    </a>
+                                {% endif %}
+                                
+                            {% elif noti.category == 'event' %}
+                                {% if platform_role == 'super_admin' %}
+                                    <a href="/events/manage" class="btn-small btn-outline-primary me-2">
+                                        <i class="bi bi-gear me-1"></i>Manage Events
+                                    </a>
+                                {% elif platform_role == 'support_technician' %}
+                                    <a href="/events/manage" class="btn-small btn-outline-primary me-2">
+                                        <i class="bi bi-tools me-1"></i>View Events
+                                    </a>
+                                {% endif %}
+                                
+                                {% if 'Results' in noti.title %}
+                                    <a href="/my/results" class="btn-small btn-outline-success me-2">
+                                        <i class="bi bi-trophy me-1"></i>My Results
+                                    </a>
+                                {% elif noti.related_id %}
+                                    <a href="/events/{{ noti.related_id }}" class="btn-small btn-outline-info me-2">
+                                        <i class="bi bi-eye me-1"></i>View Event
+                                    </a>
+                                {% endif %}
+                                
+                            {% elif noti.category == 'volunteer' %}
+                                {% if platform_role == 'super_admin' %}
+                                    <a href="/events/manage" class="btn-small btn-outline-primary me-2">
+                                        <i class="bi bi-gear me-1"></i>Manage Events
+                                    </a>
+                                {% elif platform_role == 'support_technician' %}
+                                    <a href="/events/manage" class="btn-small btn-outline-primary me-2">
+                                        <i class="bi bi-tools me-1"></i>View Events
+                                    </a>
+                                {% elif group_role == 'manager' %}
+                                    <a href="/events/manage" class="btn-small btn-outline-primary me-2">
+                                        <i class="bi bi-people me-1"></i>Manage Events
+                                    </a>
+                                {% endif %}
+                                
+                                {% if noti.related_id %}
+                                    <a href="/events/{{ noti.related_id }}" class="btn-small btn-outline-info me-2">
+                                        <i class="bi bi-person-workspace me-1"></i>View Event
+                                    </a>
+                                {% endif %}
+                                
+                            {% elif noti.category == 'system' %}
+                                {% if platform_role in ['super_admin', 'support_technician'] %}
+                                    <a href="/helpdesk/support-manage" class="btn-small btn-outline-primary me-2">
+                                        <i class="bi bi-headset me-1"></i>Helpdesk
+                                    </a>
+                                {% else %}
+                                    <a href="/helpdesk" class="btn-small btn-outline-primary me-2">
+                                        <i class="bi bi-question-circle me-1"></i>Helpdesk
+                                    </a>
+                                {% endif %}
+                                
+                                {% if 'Request' in noti.title and noti.related_id %}
+                                    <a href="/helpdesk/request/{{ noti.related_id }}" class="btn-small btn-outline-info me-2">
+                                        <i class="bi bi-eye me-1"></i>View Request
+                                    </a>
+                                {% endif %}
+                            {% endif %}
+                            
+                        </div>
+                        </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <!-- Empty State -->
+            <div class="card">
+                <div class="card-body text-center">
+                    <div class="empty-icon">📭</div>
+                    <h2 class="text-brand">No Notifications</h2>
+                    <p class="subtle">You're all caught up! New notifications will appear here.</p>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts_extra %}
+<script>
+    // Toggle read status with button (Outlook-style)
+    function toggleReadStatus(notiId, isChecked) {
+        const endpoint = isChecked ? `/noti/mark-read/${notiId}` : `/noti/mark-unread/${notiId}`;
+        
+        fetch(endpoint, {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const notiCard = document.getElementById(`noti-${notiId}`);
+                const readButton = notiCard.querySelector('button[onclick*="toggleReadStatus"]');
+                
+                if (isChecked) {
+                    notiCard.classList.remove('unread');
+                    notiCard.classList.add('read');
+                    // Update button to show "unread" state
+                    readButton.className = 'btn btn-sm btn-secondary';
+                    readButton.innerHTML = '<i class="bi bi-envelope"></i>';
+                    readButton.title = 'Mark as unread';
+                    readButton.setAttribute('onclick', `toggleReadStatus(${notiId}, false)`);
+                } else {
+                    notiCard.classList.remove('read');
+                    notiCard.classList.add('unread');
+                    // Update button to show "read" state
+                    readButton.className = 'btn btn-sm btn-success';
+                    readButton.innerHTML = '<i class="bi bi-envelope-open"></i>';
+                    readButton.title = 'Mark as read';
+                    readButton.setAttribute('onclick', `toggleReadStatus(${notiId}, true)`);
+                }
+                
+                // Update unread count
+                updateNotificationBadge();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    }
+
+    // Mark single notification as read (legacy function for compatibility)
+    function markAsRead(notiId) {
+        fetch(`/noti/mark-read/${notiId}`, {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const notiCard = document.getElementById(`noti-${notiId}`);
+                notiCard.classList.remove('unread');
+                notiCard.classList.add('read');
+                
+                // Remove the "Mark as Read" button
+                const readBtn = notiCard.querySelector('.btn-read');
+                if (readBtn) readBtn.remove();
+                
+                // Reload page to update counts
+                setTimeout(() => location.reload(), 300);
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+    
+    // Mark all notifications as read
+    function markAllAsRead() {
+        if (!confirm('Mark all notifications as read?')) return;
+        
+        fetch('/noti/mark-all-read', {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(`${data.count} notifications marked as read.`);
+                location.reload();
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+    
+    // Delete all notifications
+    function deleteAllNotis() {
+        if (!confirm('Delete all notifications? This action cannot be undone.')) return;
+        
+        fetch('/noti/delete-all', {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(`${data.count} notifications deleted.`);
+                location.reload();
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+    
+    // Delete notification
+    function deleteNoti(notiId) {
+        if (!confirm('Delete this notification?')) return;
+        
+        fetch(`/noti/delete/${notiId}`, {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const notiCard = document.getElementById(`noti-${notiId}`);
+                notiCard.style.opacity = '0';
+                notiCard.style.transform = 'translateX(-100%)';
+                
+                setTimeout(() => {
+                    notiCard.remove();
+                    
+                    // Check if there are no more notifications
+                    const remaining = document.querySelectorAll('.noti-card').length;
+                    if (remaining === 0) {
+                        location.reload();
+                    }
+                }, 300);
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+</script>
+{% endblock %}

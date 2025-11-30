@@ -1,0 +1,186 @@
+{% extends 'base.html' %}
+
+{% block title %}Personal Activity{% endblock %}
+{% set active_page = 'personal_activity' %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  
+  <!-- Page Header -->
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+      <div>
+        <h1 class="page-title mb-0">
+          Personal Activity
+        </h1>
+        <p class="text-muted mb-0">Track your activities across all groups</p>
+      </div>
+      <div class="d-flex gap-2">
+        <!-- My Results Button -->
+        <a href="/my/results" class="btn btn-primary">
+          <i class="bi bi-flag-fill me-2"></i>My Results
+        </a>
+
+        <!-- Compare Performance Button -->
+        <a href="/compare" class="btn btn-warning">
+          <i class="bi bi-graph-up me-2"></i>Compare Performance
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Activity History -->
+  <div class="row g-3 mb-4">
+    <div class="col-12">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white">
+          <h5 class="card-title mb-0">
+            <i class="bi bi-clock-history text-primary me-2"></i>
+            Recent Activity History
+          </h5>
+        </div>
+        <div class="card-body">
+          {% if stats.recent_activity %}
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead class="table-light">
+                <tr>
+                  <th>Event</th>
+                  <th>Group</th>
+                  <th>Date & Time</th>
+                  <th>Location</th>
+                  <th>Status</th>
+                  <th>Result</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for activity in stats.recent_activity %}
+                <tr>
+                  <td>
+                    <strong class="text-dark">{{ activity.event_title }}</strong>
+                    {% if activity.event_role == 'participant' %}
+                      <span class="badge bg-success ms-2">Participant</span>
+                    {% elif activity.event_role == 'volunteer' %}
+                      <span class="badge bg-warning text-dark ms-2">Volunteer</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <span class="text-muted">{{ activity.group_name }}</span>
+                  </td>
+                  <td>
+                    <small>
+                      {{ activity.event_date | nz_date }}<br>
+                      {{ activity.event_time | nz_time12_upper }}
+                    </small>
+                  </td>
+                  <td>
+                    <small class="text-muted">{{ activity.location or 'TBA' }}</small>
+                  </td>
+                  <td>
+                    {% if activity.participation_status == 'attended' %}
+                      <span class="badge bg-success">Attended</span>
+                    {% elif activity.participation_status == 'registered' %}
+                      <span class="badge bg-primary">Registered</span>
+                    {% elif activity.participation_status == 'no_show' %}
+                      <span class="badge bg-danger">No Show</span>
+                    {% elif activity.participation_status == 'cancelled' %}
+                      <span class="badge bg-secondary">Cancelled</span>
+                    {% else %}
+                      <span class="badge bg-light text-dark">{{ activity.participation_status }}</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-center">
+                    {% if activity.event_role == 'participant' %}
+                      {% if activity.elapsed_seconds %}
+                        {% set hours = (activity.elapsed_seconds // 3600) %}
+                        {% set minutes = ((activity.elapsed_seconds % 3600) // 60) %}
+                        {% set seconds = activity.elapsed_seconds % 60 %}
+                        <a href="{{ url_for('my_result_detail', event_id=activity.event_id) }}" class="text-dark text-decoration-none" title="Click to view detailed results" style="cursor: pointer;">
+                          <i class="bi bi-box-arrow-up-right text-primary"></i> {{ "%02d"|format(hours) }}:{{ "%02d"|format(minutes) }}:{{ "%02d"|format(seconds) }}
+                        </a>
+                      {% else %}
+                        <span class="text-muted">Pending</span>
+                      {% endif %}
+                    {% elif activity.event_role == 'volunteer' %}
+                      {% if activity.volunteer_hours %}
+                        {{ activity.volunteer_hours }}h
+                      {% else %}
+                        <span class="text-muted">Pending</span>
+                      {% endif %}
+                    {% else %}
+                      <span class="text-muted">-</span>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="text-center py-4">
+            <p class="text-muted">No recent activity found</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+    <!-- Statistics by Group -->
+  <div class="row g-3 mb-4">
+    <div class="col-12">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white">
+          <h5 class="card-title mb-0">
+            <i class="bi bi-people text-primary me-2"></i>
+            My Groups Overview
+          </h5>
+        </div>
+        <div class="card-body">
+          {% if stats.group_stats %}
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead class="table-light">
+                <tr>
+                  <th>Group Name</th>
+                  <th class="text-center">Attended</th>
+                  <th class="text-center">Volunteer Events</th>
+                  <th class="text-center">Volunteer Hours</th>
+                  <th class="text-center">Upcoming</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for group in stats.group_stats %}
+                <tr>
+                  <td>
+                    <strong>{{ group.group_name }}</strong>
+                  </td>
+                  <td class="text-center">
+                    <span class="badge bg-success">{{ group.attended_count or 0 }}</span>
+                  </td>
+                  <td class="text-center">
+                    <span class="badge bg-danger">{{ group.volunteer_count or 0 }}</span>
+                  </td>
+                  <td class="text-center">
+                    <span class="badge bg-warning text-dark">{{ group.volunteer_hours or 0 }}</span>
+                  </td>
+                  <td class="text-center">
+                    <span class="badge bg-info">{{ group.upcoming_count or 0 }}</span>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="text-center py-4">
+            <p class="text-muted">No group statistics available</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

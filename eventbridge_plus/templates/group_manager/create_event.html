@@ -1,0 +1,233 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if mode == 'edit' %}Edit Event{% else %}Create Event{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <!-- Page Header -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h1 class="page-title mb-0">{% if mode == 'edit' %}Edit Event{% else %}Create New Event{% endif %}</h1>
+          <p class="text-muted mb-0">{% if mode == 'edit' %}Update the details for "{{ event.event_title }}"{% else %}Fill in the details to create a new event for your group{% endif %}</p>
+        </div>
+      </div>
+
+      <!-- Event Creation/Edit Form -->
+      <div class="card">
+        <div class="card-body">
+          <form method="POST" action="{% if mode == 'edit' %}{{ url_for('edit_event', event_id=event.event_id) }}{% else %}{{ url_for('create_event') }}{% endif %}" id="createEventForm">
+            
+            <!-- Group Selection -->
+            <div class="mb-3">
+              <label for="group_id" class="form-label">Group <span class="text-danger">*</span></label>
+              {% if mode == 'edit' %}
+                <input type="hidden" name="group_id" value="{{ event.group_id }}">
+                <input type="text" class="form-control" value="{{ event.group_name }}" readonly>
+                <small class="text-muted">Group cannot be changed when editing an event</small>
+              {% else %}
+                <select class="form-select" id="group_id" name="group_id" required>
+                  <option value="">Select a group...</option>
+                  {% for group in groups %}
+                    <option value="{{ group.group_id }}" 
+                      {% if request.args.get('group_id') == group.group_id|string %}selected{% endif %}>
+                      {{ group.name }}
+                    </option>
+                  {% endfor %}
+                </select>
+                <small class="text-muted">Select the group this event belongs to</small>
+              {% endif %}
+            </div>
+
+            <!-- Event Title -->
+            <div class="mb-3">
+              <label for="event_title" class="form-label">Event Title <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" id="event_title" name="event_title" 
+                     required minlength="3" maxlength="200" 
+                     {% if mode == 'edit' %}value="{{ event.event_title }}"{% endif %}
+                     placeholder="e.g., Morning Cycling Tour">
+              <small class="subtle">3-200 characters</small>
+            </div>
+
+            <!-- Description -->
+            <div class="mb-3">
+              <label for="description" class="form-label">Description</label>
+              <textarea class="form-control" id="description" name="description" 
+                        rows="4" maxlength="1000"
+                        placeholder="Describe your event, what participants should bring, meeting point, etc.">{% if mode == 'edit' %}{{ event.description or '' }}{% endif %}</textarea>
+              <small class="text-muted">Optional, up to 1000 characters</small>
+            </div>
+
+            <!-- Event Type -->
+            <div class="mb-3">
+              <label for="event_type" class="form-label">Event Type <span class="text-danger">*</span></label>
+              <select class="form-control" id="event_type" name="event_type" required>
+                <option value="">Select event type...</option>
+                {% for event_type in event_types %}
+                  <option value="{{ event_type }}" {% if mode == 'edit' and event.event_type == event_type %}selected{% endif %}>{{ event_type }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <!-- Date and Time -->
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="event_date" class="form-label">Event Date <span class="text-danger">*</span></label>
+                <input type="date" class="form-control" id="event_date" name="event_date" 
+                       {% if mode == 'edit' %}value="{{ event.event_date }}"{% endif %} required>
+                <small class="text-muted">{{ 'Event date' if mode == 'edit' else 'Must be a future date' }}</small>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Event Time <span class="text-danger">*</span></label>
+                <div class="d-flex align-items-center gap-2">
+                  <select class="form-select" id="event_time_hour" aria-label="Hour" required style="max-width: 90px;">
+                    {% for h in range(1,13) %}
+                    <option value="{{ '%02d' % h }}">{{ '%02d' % h }}</option>
+                    {% endfor %}
+                  </select>
+                  <span>:</span>
+                  <select class="form-select" id="event_time_min" aria-label="Minute" required style="max-width: 90px;">
+                    {% for m in range(0,60) %}
+                    <option value="{{ '%02d' % m }}">{{ '%02d' % m }}</option>
+                    {% endfor %}
+                  </select>
+                  <select class="form-select" id="event_time_ampm" aria-label="AM or PM" required style="max-width: 100px;">
+                    <option value="AM">AM</option>
+                    <option value="PM">PM</option>
+                  </select>
+                </div>
+                <input type="hidden" id="event_time" name="event_time" {% if mode == 'edit' %}value="{{ event.event_time }}"{% endif %}>
+                <small class="text-muted">12-hour format (H:MM AM/PM)</small>
+              </div>
+            </div>
+
+            <!-- Location -->
+            <div class="mb-3">
+              <label for="location" class="form-label">Location <span class="text-danger">*</span></label>
+              <select class="form-control" id="location" name="location" required>
+                <option value="">Select location...</option>
+                {% for loc in locations %}
+                  <option value="{{ loc }}" {% if mode == 'edit' and event.location == loc %}selected{% endif %}>{{ loc }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <!-- Volunteer needs removed (DB no longer stores volunteer requirements) -->
+
+
+            <!-- Max Participants -->
+            <div class="mb-3">
+              <label for="max_participants" class="form-label">Maximum Participants <span class="text-danger">*</span></label>
+              <input type="number" class="form-control" id="max_participants" name="max_participants" 
+                     required min="1" max="1000" 
+                     {% if mode == 'edit' %}value="{{ event.max_participants }}"{% else %}value="20"{% endif %}>
+              <small class="text-muted">1-1000 participants</small>
+            </div>
+
+            <!-- Status (only for edit mode) -->
+            {% if mode == 'edit' %}
+            <div class="mb-3">
+              <label for="status" class="form-label">Status <span class="text-danger">*</span></label>
+              <select class="form-control" id="status" name="status" required>
+                <option value="draft" {% if event.status == 'draft' %}selected{% endif %}>Draft</option>
+                <option value="scheduled" {% if event.status == 'scheduled' %}selected{% endif %}>Scheduled</option>
+                <option value="cancelled" {% if event.status == 'cancelled' %}selected{% endif %}>Cancelled</option>
+              </select>
+              <small class="text-muted">Change event status</small>
+            </div>
+            {% endif %}
+
+            <!-- Form Actions -->
+            <div class="d-flex gap-2 justify-content-end">
+              <a href="{{ url_for('manage_events') }}" class="btn btn-outline-activeloop">
+                <i class="bi bi-x-circle me-1"></i>Cancel
+              </a>
+              <button type="submit" class="btn btn-activeloop">
+                <i class="bi bi-check-circle me-1"></i>{% if mode == 'edit' %}Save Changes{% else %}Create Event{% endif %}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialize date min when creating new events
+  {% if mode != 'edit' %}
+  const dateInput = document.getElementById('event_date');
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const minDate = tomorrow.toISOString().split('T')[0];
+  dateInput.setAttribute('min', minDate);
+  {% endif %}
+
+  // Time controls
+  const hourSel = document.getElementById('event_time_hour');
+  const minSel  = document.getElementById('event_time_min');
+  const apSel   = document.getElementById('event_time_ampm');
+  const hidden  = document.getElementById('event_time');
+
+  function setFromHidden24()
+  {
+    const raw = (hidden.value || '').trim();
+    if (!raw) return; // nothing to set
+    const parts = raw.split(':');
+    if (parts.length < 2) return;
+    let hh = parseInt(parts[0], 10);
+    const mm = parts[1].padStart(2, '0');
+    let ap = 'AM';
+    if (hh === 0) { hh = 12; ap = 'AM'; }
+    else if (hh === 12) { ap = 'PM'; }
+    else if (hh > 12) { hh = hh - 12; ap = 'PM'; }
+    hourSel.value = String(hh).padStart(2,'0');
+    minSel.value  = mm;
+    apSel.value   = ap;
+  }
+
+  function updateHidden24()
+  {
+    const hh12 = parseInt(hourSel.value, 10);
+    const mm   = minSel.value;
+    const ap   = apSel.value;
+    let hh24 = hh12 % 12;
+    if (ap === 'PM') hh24 += 12;
+    hidden.value = String(hh24).padStart(2,'0') + ':' + mm;
+  }
+
+  // Prefill from existing value (edit mode) or default 09:00 AM
+  if (hidden.value) {
+    setFromHidden24();
+  } else {
+    hourSel.value = '09';
+    minSel.value  = '00';
+    apSel.value   = 'AM';
+    updateHidden24();
+  }
+
+  // Keep hidden value in sync
+  [hourSel, minSel, apSel].forEach(el => {
+    el.addEventListener('change', updateHidden24);
+  });
+
+  // Validate date on submit (only in create mode)
+  {% if mode != 'edit' %}
+  const form = document.getElementById('createEventForm');
+  form.addEventListener('submit', function(e) {
+    const selectedDate = new Date(document.getElementById('event_date').value);
+    const todayMidnight = new Date(); todayMidnight.setHours(0,0,0,0);
+    if (selectedDate <= todayMidnight) {
+      e.preventDefault();
+      alert('Event date must be in the future. Please select a date after today.');
+      document.getElementById('event_date').focus();
+      return false;
+    }
+  });
+  {% endif %}
+});
+</script>
+{% endblock %}

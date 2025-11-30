@@ -1,0 +1,458 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin Dashboard{% endblock %}
+{% set active_page = 'home' %}
+
+{% block content %}
+<div class="container-fluid py-4">
+
+  <!-- Page Title -->
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-header">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h1 class="mb-0">Admin Dashboard</h1>
+          <p class="text-muted mb-0">Manage users, events, and monitor platform activity</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Statistics Cards -->
+  {% if user_stats %}
+  <!-- First Row: User Statistics -->
+  <div class="row g-3 mb-4">
+    <!-- Total Users Card -->
+    <div class="col-md-4">
+      <a href="{{ url_for('admin_users_list') }}" class="text-decoration-none">
+        <div class="kpi">
+          <i class="bi bi-people-fill"></i>
+          <h3>{{ user_stats.total_users }}</h3>
+          <small>Total Users</small>
+        </div>
+      </a>
+    </div>
+    
+    <!-- Active Users Card -->
+    <div class="col-md-4">
+      <a href="{{ url_for('admin_users_list', status='active') }}" class="text-decoration-none">
+        <div class="kpi">
+          <i class="bi bi-person-check-fill"></i>
+          <h3>{{ user_stats.status_breakdown.active }}</h3>
+          <small>Active Users</small>
+        </div>
+      </a>
+    </div>
+    
+    <!-- Banned Users Card -->
+    <div class="col-md-4">
+      <a href="{{ url_for('admin_users_list', status='banned') }}" class="text-decoration-none">
+        <div class="kpi">
+          <i class="bi bi-person-x-fill"></i>
+          <h3>{{ user_stats.status_breakdown.banned }}</h3>
+          <small>Banned Users</small>
+        </div>
+      </a>
+    </div>
+  </div>
+  
+  <!-- Second Row: Other Cards -->
+  <div class="row g-3 mb-4">
+    <!-- Active Groups Card -->
+    {% if platform_data %}
+    <div class="col-md-4">
+      <a href="{{ url_for('groups_index', tab='approved') }}" class="text-decoration-none">
+        <div class="kpi">
+          <i class="bi bi-collection-fill"></i>
+          <h3>{{ platform_data.group_stats.active }}</h3>
+          <small>Active Groups</small>
+          <div class="mt-1">
+            <span class="badge bg-warning text-dark">{{ platform_data.group_stats.pending }} pending</span>
+          </div>
+        </div>
+      </a>
+    </div>
+    {% endif %}
+    
+    <!-- Helpdesk Analytics Card -->
+    {% if helpdesk_stats %}
+    <div class="col-md-4">
+      <a href="{{ url_for('helpdesk_analytics') }}" class="text-decoration-none">
+        <div class="kpi">
+          <i class="bi bi-ticket-perforated"></i>
+          <h3>{{ helpdesk_stats.active_requests }}</h3>
+          <small>Helpdesk Analytics</small>
+          <div class="mt-1">
+            <span class="badge bg-info text-white">Active: {{ helpdesk_stats.active_requests }}</span>
+            <span class="badge bg-success text-white ms-1">Solved: {{ helpdesk_stats.solved_requests }}</span>
+          </div>
+        </div>
+      </a>
+    </div>
+    {% endif %}
+    
+    <!-- Preview Export Card -->
+    <div class="col-md-4">
+      <a href="{{ url_for('preview_events_export') }}" class="text-decoration-none">
+        <div class="kpi">
+          <i class="bi bi-file-earmark-spreadsheet"></i>
+          <h3><i class="bi bi-eye"></i></h3>
+          <small>Preview Export</small>
+          <div class="mt-1">
+            <span class="badge bg-secondary text-white">Event data export</span>
+          </div>
+        </div>
+      </a>
+    </div>
+  </div>
+  {% endif %}
+
+
+
+  <!-- Analytics Charts -->
+  {% if user_stats or event_insights or platform_data %}
+  <div class="row g-3 mb-4">
+    
+    <!-- User Distribution Chart -->
+    {% if user_stats %}
+    <div class="col-md-6">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="card-title mb-0">
+              <i class="bi bi-pie-chart-fill text-primary me-2"></i>User Role Distribution
+            </h5>
+            <span class="badge bg-primary">
+              Total: {{ user_stats.total_users }}
+            </span>
+          </div>
+          <div style="height: 350px; position: relative;">
+            <canvas id="userChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+    
+    <!-- Event Statistics Chart -->
+    {% if event_insights %}
+    <div class="col-md-6">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="card-title mb-0">
+              <i class="bi bi-bar-chart-fill text-success me-2"></i>Event Statistics
+            </h5>
+            <div class="d-flex align-items-center gap-3">
+              <span class="badge bg-primary">
+                Total: {{ event_insights.event_stats.total }}
+              </span>
+              <select id="eventPeriodSelect" class="form-select form-select-sm" style="width: auto;">
+                <option value="all" {% if event_period == 'all' %}selected{% endif %}>All Time</option>
+                <option value="last_month" {% if event_period == 'last_month' %}selected{% endif %}>Last Month</option>
+                <option value="last_3_months" {% if event_period == 'last_3_months' %}selected{% endif %}>Last 3 Months</option>
+                <option value="last_6_months" {% if event_period == 'last_6_months' %}selected{% endif %}>Last 6 Months</option>
+                <option value="last_year" {% if event_period == 'last_year' %}selected{% endif %}>Last Year</option>
+              </select>
+            </div>
+          </div>
+          <div style="height: 350px; position: relative;">
+            <canvas id="eventChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+  
+  <!-- Growth Trend Chart -->
+  {% if platform_data %}
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="card-title mb-0">
+              <i class="bi bi-graph-up text-info me-2"></i>Group Growth Trend
+            </h5>
+            <div class="d-flex align-items-center gap-3">
+              {% if platform_data.growth_trend %}
+              <span class="badge bg-primary">
+                Total: {{ platform_data.growth_trend|sum(attribute='new_groups') }}
+              </span>
+              {% else %}
+              <span class="badge bg-secondary">No Data</span>
+              {% endif %}
+              <select id="growthPeriodSelect" class="form-select form-select-sm" style="width: auto;">
+                <option value="last_6_months" {% if growth_period == 'last_6_months' %}selected{% endif %}>Last 6 Months</option>
+                <option value="last_year" {% if growth_period == 'last_year' %}selected{% endif %}>Last Year</option>
+              </select>
+            </div>
+          </div>
+          <div style="height: 350px; position: relative;">
+            <canvas id="growthChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+  {% endif %}
+
+</div>
+
+<!-- Load Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+
+<script>
+// Register Chart.js plugins
+Chart.register(ChartDataLabels);
+
+// User Distribution Chart
+{% if user_stats %}
+var userCtx = document.getElementById('userChart').getContext('2d');
+var userChart = new Chart(userCtx, {
+    type: 'doughnut',
+    data: {
+        labels: ['Participants', 'Super Admins', 'Support Techs'],
+        datasets: [{
+            data: [
+                {{ user_stats.role_breakdown.participants or 0 }},
+                {{ user_stats.role_breakdown.super_admins or 0 }},
+                {{ user_stats.role_breakdown.support_techs or 0 }}
+            ],
+            backgroundColor: ['#006400', '#FF7F50', '#6A5ACD']
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: true,
+                position: 'right',
+                labels: {
+                    font: {            
+                        size: 16        
+                    }
+                }
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        var label = context.label || '';
+                        var value = context.parsed || 0;
+                        var total = context.dataset.data.reduce((a, b) => a + b, 0);
+                        var percentage = ((value / total) * 100).toFixed(1);
+                        return label + ': ' + value + ' users (' + percentage + '%)';
+                    }
+                }
+            },
+            datalabels: {
+                display: true,
+                color: 'white',
+                font: {
+                    size: 14,
+                    weight: 'bold'
+                },
+                formatter: function(value, context) {
+                    var total = context.dataset.data.reduce((a, b) => a + b, 0);
+                    var percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                    return percentage + '%';
+                }
+            }
+        }
+    }
+});
+{% endif %}
+
+// Event Statistics Chart
+{% if event_insights %}
+var eventCtx = document.getElementById('eventChart').getContext('2d');
+var eventChart = new Chart(eventCtx, {
+    type: 'bar',
+    data: {
+        labels: ['Total', 'Upcoming', 'Completed', 'Cancelled'],
+        datasets: [{
+            label: 'Events',
+            data: [
+                {{ event_insights.event_stats.total or 0 }},
+                {{ event_insights.event_stats.upcoming or 0 }},
+                {{ event_insights.event_stats.completed or 0 }},
+                {{ event_insights.event_stats.cancelled or 0 }}
+            ],
+            backgroundColor: ['#006400', '#FF7F50', '#6A5ACD', '#dc3545']
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: false
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        var label = context.label || '';
+                        var value = context.parsed.y || 0;
+                        return label + ': ' + value + ' events';
+                    }
+                }
+            },
+            datalabels: {
+                display: true,
+                color: 'white',
+                font: {
+                    size: 16,
+                    weight: 'bold'
+                },
+                formatter: function(value) {
+                    return value;
+                },
+                anchor: 'center',
+                align: 'center',
+                offset: 0
+            }
+        },
+        scales: {
+            x: {
+                title: {
+                    display: true,
+                    text: 'Event Status',
+                    font: {
+                        size: 14,
+                        weight: 'bold'
+                    }
+                },
+                ticks: {
+                    font: {
+                        size: 16  
+                    }
+                }
+            },
+            y: {
+                title: {
+                    display: true,
+                    text: 'Total Events ({{ event_period_label }})',
+                    font: {
+                        size: 14,
+                        weight: 'bold'
+                    }
+                },
+                beginAtZero: true,
+                ticks: {
+                    font: {
+                        size: 16  
+                    }
+                }
+            }
+        }
+    }
+});
+{% endif %}
+
+// Growth Trend Chart
+{% if platform_data %}
+var growthData = {{ (platform_data.growth_trend | tojson) if platform_data and platform_data.growth_trend else '[]' }};
+
+var growthCtx = document.getElementById('growthChart').getContext('2d');
+var growthChart = new Chart(growthCtx, {
+    type: 'line',
+    data: {
+        labels: growthData && growthData.length > 0 ? 
+            growthData.map(function(item) { return item.month; }) : 
+            ['No Data Available'],
+        datasets: [{
+            label: 'Groups Created',
+            data: growthData && growthData.length > 0 ? 
+                growthData.map(function(item) { return item.new_groups; }) : 
+                [0],
+            borderColor: '#006400',
+            backgroundColor: 'rgba(40, 167, 69, 0.1)',
+            borderWidth: 4,
+            fill: true,
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: true,
+                position: 'top', 
+                labels: {
+                    font: {
+                        size: 17,
+                        weight: 'bold'
+                    },
+                    padding: 15
+                }
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        var label = context.dataset.label || '';
+                        var value = context.parsed.y || 0;
+                        return label + ': ' + value + ' groups';
+                    }
+                }
+            }
+        },
+        scales: {
+            x: {
+                ticks: {                
+                    font: {             
+                        size: 16        
+                    }
+                }
+            },
+            y: {
+                title: {
+                    display: true,
+                    text: 'Number of Groups Created',
+                    font: {
+                        size: 14,
+                        weight: 'bold'
+                    }
+                },
+                beginAtZero: true,
+                ticks: {               
+                    font: {
+                        size: 16      
+                    },
+                    stepSize: 1,
+                    callback: function(value) {
+                        return Math.round(value);
+                    }
+                }
+            }
+        }
+    }
+});
+{% endif %}
+
+// Handle time period selection for Event Statistics
+document.getElementById('eventPeriodSelect').addEventListener('change', function() {
+    const eventPeriod = this.value;
+    const growthPeriod = document.getElementById('growthPeriodSelect').value;
+    const url = new URL(window.location.href);
+    url.searchParams.set('event_period', eventPeriod);
+    url.searchParams.set('growth_period', growthPeriod);
+    window.location.href = url.toString();
+});
+
+// Handle time period selection for Group Growth Trend
+document.getElementById('growthPeriodSelect').addEventListener('change', function() {
+    const growthPeriod = this.value;
+    const eventPeriod = document.getElementById('eventPeriodSelect').value;
+    const url = new URL(window.location.href);
+    url.searchParams.set('event_period', eventPeriod);
+    url.searchParams.set('growth_period', growthPeriod);
+    window.location.href = url.toString();
+});
+
+</script>
+
+{% endblock %}

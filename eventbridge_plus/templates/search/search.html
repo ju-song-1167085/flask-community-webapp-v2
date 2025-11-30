@@ -1,0 +1,259 @@
+{% extends "base.html" %}
+
+{% block title %}{{ tab_title }}{% endblock %}
+
+{% block content %}
+<h1 class="page-title">{{ tab_title }}</h1>
+
+<!-- Tab Buttons -->
+<div class="mb-3">
+  <div class="btn-group" role="group">
+    <a class="btn btn-outline-activeloop btn-compact {{ 'active' if tab=='events' else '' }}"
+       aria-current="{{ 'page' if tab=='events' else 'false' }}"
+       href="{{ url_for('explore', tab='events', q=q, from=date_from, to=date_to, location=location, event_type=event_type, privacy_type=privacy_type, sort=sort) }}"
+       {% if tab=='events' %}style="background: var(--brand-green); color: #fff; border-color: var(--brand-green);"{% endif %}>
+       Upcoming Events
+    </a>
+    <a class="btn btn-outline-activeloop btn-compact {{ 'active' if tab=='groups' else '' }}"
+       aria-current="{{ 'page' if tab=='groups' else 'false' }}"
+       href="{{ url_for('explore', tab='groups', q=q, location=location, type=gtype, privacy_type=privacy_type, sort=sort) }}"
+       {% if tab=='groups' %}style="background: var(--brand-green); color: #fff; border-color: var(--brand-green);"{% endif %}>
+       Groups
+    </a>
+  </div>
+</div>
+
+<!-- Search & Filters -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form class="row g-3 align-items-end" method="get" action="{{ url_for('explore') }}">
+            <input type="hidden" name="tab" value="{{ tab }}">
+
+            <!-- Search -->
+            <div class="col-sm-12 col-md-4">
+                <label class="form-label fw-semibold">Search</label>
+                {% if tab == 'events' %}
+                <input class="form-control" type="text" name="q" value="{{ q or '' }}" placeholder="Search by event name">
+                {% elif tab == 'groups' %}
+                <input class="form-control" type="text" name="q" value="{{ q or '' }}" placeholder="Search by group name">
+                {% else %}
+                <input class="form-control" type="text" name="q" value="{{ q or '' }}" placeholder="Search events and groups">
+                {% endif %}
+            </div>
+
+            {% if tab != 'groups' %}
+            <!-- Date range (only events/all)-->
+            <div class="col-sm-6 col-md-2">
+                <label class="form-label fw-semibold">Start date</label>
+                <input class="form-control" type="date" id="date_from" name="from" value="{{ date_from or '' }}" min="{{ today }}">
+            </div>
+            <div class="col-sm-6 col-md-2">
+                <label class="form-label fw-semibold">End date</label>
+                <input class="form-control" type="date" id="date_to" name="to" value="{{ date_to or '' }}" min="{{ today }}">
+            </div>
+            {% endif %}
+
+            <!-- Location -->
+            <div class="col-sm-6 col-md-3">
+                {% if tab == 'events' %}
+                <label class="form-label fw-semibold">Event Location</label>
+                {% elif tab == 'groups' %}
+                <label class="form-label fw-semibold">Group Location</label>
+                {% else %}
+                <label class="form-label fw-semibold">Location</label>
+                {% endif %}
+                <select class="form-select" name="location">
+                    <option value="">All Locations</option>
+                    {% if tab == 'groups' %}
+                        {% for loc in group_locations %}
+                            <option value="{{ loc }}" {{ 'selected' if location==loc else '' }}>{{ loc }}</option>
+                        {% endfor %}
+                    {% else %}
+                        {% for loc in event_locations %}
+                            <option value="{{ loc }}" {{ 'selected' if location==loc else '' }}>{{ loc }}</option>
+                        {% endfor %}
+                    {% endif %}
+                </select>
+            </div>
+
+            {% if tab == 'events' %}
+            <!-- Event Type (only events) -->
+            <div class="col-sm-6 col-md-2">
+                <label class="form-label fw-semibold">Event Type</label>
+                <select class="form-select" name="event_type">
+                    <option value="" {{ 'selected' if not event_type else '' }}>All Types</option>
+                    <option value="Swimming" {{ 'selected' if event_type=='Swimming' else '' }}>Swimming</option>
+                    <option value="Trail Running" {{ 'selected' if event_type=='Trail Running' else '' }}>Trail Running</option>
+                    <option value="Cycling" {{ 'selected' if event_type=='Cycling' else '' }}>Cycling</option>
+                    <option value="Park Walk" {{ 'selected' if event_type=='Park Walk' else '' }}>Park Walk</option>
+                    <option value="Fun Run" {{ 'selected' if event_type=='Fun Run' else '' }}>Fun Run</option>
+                    <option value="Marathon" {{ 'selected' if event_type=='Marathon' else '' }}>Marathon</option>
+                </select>
+            </div>
+            {% endif %}
+
+            {% if tab == 'groups' %}
+            <!-- Group Type (only groups) -->
+            <div class="col-sm-6 col-md-2">
+                <label class="form-label fw-semibold">Group Type</label>
+                <select class="form-select" name="type">
+                    <option value="" {{ 'selected' if not gtype else '' }}>All group types</option>
+                    <option value="activity" {{ 'selected' if gtype=='activity' else '' }}>Activity</option>
+                    <option value="social" {{ 'selected' if gtype=='social' else '' }}>Social</option>
+                    <option value="mixed" {{ 'selected' if gtype=='mixed' else '' }}>Mixed</option>
+                </select>
+            </div>
+            {% endif %}
+
+            <!-- Privacy Type (for all logged in users in groups tab) -->
+            {% if tab == 'groups' and session.get('loggedin') %}
+            <div class="col-sm-6 col-md-2">
+                <label class="form-label fw-semibold">Privacy Type</label>
+                <select class="form-select" name="privacy_type">
+                    <option value="" {{ 'selected' if not privacy_type else '' }}>All</option>
+                    <option value="public" {{ 'selected' if privacy_type=='public' else '' }}>Public Only</option>
+                    <option value="private" {{ 'selected' if privacy_type=='private' else '' }}>Private Only</option>
+                </select>
+            </div>
+            {% elif (tab in ('events','groups')) and (user_role == 'super_admin' or group_role == 'manager') %}
+            <div class="col-sm-6 col-md-2">
+                <label class="form-label fw-semibold">Privacy Type</label>
+                <select class="form-select" name="privacy_type">
+                    <option value="" {{ 'selected' if not privacy_type else '' }}>All</option>
+                    <option value="public" {{ 'selected' if privacy_type=='public' else '' }}>Public Only</option>
+                    <option value="private" {{ 'selected' if privacy_type=='private' else '' }}>Private Only</option>
+                </select>
+            </div>
+            {% endif %}
+
+            <!-- Sort By -->
+            <div class="col-sm-6 col-md-2">
+                <label class="form-label fw-semibold">Sort By</label>
+                <select class="form-select" name="sort">
+                {% if tab == 'groups' %}
+                    {% if q %}
+                    <option value="" {{ 'selected' if not sort else '' }}>Relevance</option>
+                    {% endif %}
+                    <option value="name" {{ 'selected' if sort=='name' else '' }}>Name</option>
+                    <option value="members" {{ 'selected' if sort=='members' else '' }}>Members</option>
+                    <option value="popularity" {{ 'selected' if sort=='popularity' else '' }}>Popularity</option>
+                {% else %}
+                    <!-- Events tab -->
+                    {% if q %}
+                    <option value="" {{ 'selected' if not sort else '' }}>Relevance</option>
+                    {% endif %}
+                    <option value="date" {{ 'selected' if sort=='date' else '' }}>Soonest</option>
+                    <option value="date_desc" {{ 'selected' if sort=='date_desc' else '' }}>Farthest</option>
+                    <option value="popularity" {{ 'selected' if sort=='popularity' else '' }}>Popularity</option>
+                    <option value="name" {{ 'selected' if sort=='name' else '' }}>Name</option>
+                {% endif %}
+                </select>
+            </div>
+
+            <!-- Submit + Reset -->
+            <div class="col-12 col-md-2">
+                <label class="form-label fw-semibold d-none d-md-block">&nbsp;</label>
+                <div class="d-flex gap-2">
+                    <!-- Search Button (icon-only) -->
+                    <button class="btn btn-activeloop btn-compact icon-bold" type="submit" aria-label="Search" title="Search">
+                        <i class="bi bi-search"></i>
+                    </button>
+
+                    <!-- Reset Button (icon-only) -->
+                    <a href="{{ url_for('explore', tab=tab) }}" class="btn btn-outline-activeloop btn-compact icon-bold" aria-label="Reset" title="Reset">
+                        <i class="bi bi-arrow-counterclockwise"></i>
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if tab != 'groups' %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const fromEl = document.getElementById('date_from');
+  const toEl = document.getElementById('date_to');
+  if (!fromEl || !toEl) return;
+  function syncEndMin() {
+    if (fromEl.value) {
+      toEl.min = fromEl.value;
+      if (toEl.value && toEl.value < fromEl.value) {
+        toEl.value = fromEl.value;
+      }
+    } else {
+      toEl.removeAttribute('min');
+    }
+  }
+  function syncStartMax() {
+    if (toEl.value) {
+      fromEl.max = toEl.value;
+      if (fromEl.value && fromEl.value > toEl.value) {
+        fromEl.value = toEl.value;
+      }
+    } else {
+      fromEl.removeAttribute('max');
+    }
+  }
+  fromEl.addEventListener('change', syncEndMin);
+  toEl.addEventListener('change', syncStartMax);
+  syncEndMin();
+  syncStartMax();
+});
+</script>
+{% endif %}
+
+<!-- GROUPS results -->
+{% if tab == 'groups' %}
+    <h5 class="mb-2">Groups</h5>
+    <div id="explore-groups" class="row" role="region" aria-live="polite">
+    {% for g in results.groups %}
+      <div class="col-md-6 col-lg-4 mb-3">
+        {% include "components/_group_card.html" %}
+      </div>
+    {% else %}
+      <div class="col-12">
+        <div class="alert alert-light border">No public groups found.</div>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+<!-- EVENTS results -->
+{% if tab == 'events' %}
+    <h5 class="mb-2">Events</h5>
+    <div id="explore-events" class="row" role="region" aria-live="polite">
+        {% for e in results.events %}
+        <div class="col-md-6 col-lg-4 mb-3">
+            {% include "components/_event_card.html" %}
+        </div>
+        {% else %}
+        <div class="col-12">
+            <div class="alert alert-light border">No upcoming events.</div>
+        </div>
+        {% endfor %}
+    </div>
+    {% if tab == 'events' and results.events_pagination %}
+    {% set pagination = results.events_pagination %}
+    {% set pagination_links = results.events_pagination_links %}
+    <div class="mt-3">
+        {% include 'components/pagination.html' %}
+    </div>
+    {% endif %}
+{% endif %}
+
+<!-- Popularity explanation -->
+{% if tab == 'groups' %}
+    <div class="alert alert-info py-2 mt-3">
+    <strong>Popularity</strong> = Number of members + Number of events in the last 30 days + Total number of participants in the last 30 days
+    </div>
+    {% if tab == 'groups' and results.groups_pagination %}
+    {% set pagination = results.groups_pagination %}
+    {% set pagination_links = results.groups_pagination_links %}
+    <div class="mt-3">
+        {% include 'components/pagination.html' %}
+    </div>
+    {% endif %}
+{% endif %}
+
+{% endblock %}

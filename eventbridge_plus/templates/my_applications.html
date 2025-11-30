@@ -1,0 +1,163 @@
+{% extends 'base.html' %}
+{% block title %}My Applications{% endblock %}
+{% block content %}
+
+<div class="container col-lg-10">
+  <div class="d-flex justify-content-between align-items-center mt-3 mb-3">
+    <h3 class="mb-0">My Group Applications</h3>
+    <a href="{{ url_for('user_rejection_history') }}" class="btn text-white" style="background-color: #ec7a08; border-color: #ec7a08;">
+      <i class="bi bi-x-circle me-2"></i>Reject History
+    </a>
+  </div>
+
+<form class="row g-2 align-items-end mb-3" method="get" id="filter-form">
+  <div class="col-sm-4">
+  <label class="form-label mb-1">Location</label>
+  <select name="location" class="form-select form-select-sm">
+    <option value="">All</option>
+    {% for loc in locations %}
+      <option value="{{ loc }}" {{ 'selected' if q_location==loc else '' }}>
+        {{ loc }}
+      </option>
+    {% endfor %}
+  </select>
+  </div>
+  <div class="col-sm-3">
+    <label class="form-label mb-1">Status</label>
+    <select name="status" class="form-select form-select-sm">
+      <option value="">All</option>
+      {% for s in ['pending','approved','rejected','draft'] %}
+        <option value="{{ s }}" {{ 'selected' if q_status==s else '' }}>{{ s|capitalize }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-sm-5">
+    <label class="form-label mb-1">Sort by Updated</label>
+    <div class="d-flex align-items-center gap-1">
+      <select name="sort" class="form-select form-select-sm">
+        <option value="desc" {{ 'selected' if q_sort=='desc' else '' }}>Newest first</option>
+        <option value="asc"  {{ 'selected' if q_sort=='asc'  else '' }}>Oldest first</option>
+      </select>
+      <button type="submit" class="btn btn-activeloop btn-extra-compact icon-bold" title="Search" aria-label="Search">
+        <i class="bi bi-search"></i>
+      </button>
+      <a class="btn btn-outline-activeloop btn-extra-compact icon-bold" href="{{ url_for('my_applications_page') }}" title="Reset" aria-label="Reset">
+        <i class="bi bi-arrow-counterclockwise"></i>
+      </a>
+    </div>
+  </div>
+</form>
+
+  <table class="table table-hover align-middle mt-3" id="apps-table">
+    <thead>
+      <tr>
+        <th>Name</th><th>Location</th><th>Status</th><th>Updated</th><th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for a in apps %}
+      <tr data-app-id="{{ a.group_id }}">
+        <td class="col-name">{{ a.name }}</td>
+        <td class="col-loc">{{ a.group_location }}</td>
+        <td class="col-status">
+          {% if a.status == 'pending' %}<span class="badge bg-warning text-dark">Pending</span>{% endif %}
+          {% if a.status == 'approved' %}<span class="badge bg-success">Approved</span>{% endif %}
+          {% if a.status == 'rejected' %}<span class="badge bg-danger">Rejected</span>{% endif %}
+          {% if a.status == 'draft' %}<span class="badge bg-secondary">Draft</span>{% endif %}
+        </td>
+        <td class="col-updated">{{ a.updated_at|nz_date }} {{ a.updated_at.strftime('%I:%M %p').upper() if a.updated_at else '' }}</td>
+        <td class="col-action">
+          {% if a.status in ['draft','rejected'] %}
+            <a class="btn btn-sm btn-outline-primary" href="{{ url_for('group_apply_for_participant') }}?group_id={{ a.group_id }}">Edit & Resubmit</a>
+          {% elif a.status == 'pending' %}
+            <span class="text-muted">Waiting for review…</span>
+          {% elif a.status == 'approved' %}
+            <a class="btn btn-sm btn-outline-success" href="/groups/{{ a.group_id }}">View</a>
+          {% else %}
+            <span class="text-muted">—</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% if a.status == 'rejected' %}
+      <tr class="row-feedback" data-app-id="{{ a.group_id }}">
+        <td colspan="5">
+          <div class="alert alert-info mb-0">
+            <strong>Note:</strong> Your application was rejected. Please contact support through the helpdesk for more information.
+          </div>
+        </td>
+      </tr>
+      {% endif %}
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="text-muted small">Auto-updating every 10 seconds.</div>
+</div>
+
+<script>
+(function(){
+  function badge(status){
+    if(status==='pending')  return '<span class="badge bg-warning text-dark">Pending</span>';
+    if(status==='approved') return '<span class="badge bg-success">Approved</span>';
+    if(status==='rejected') return '<span class="badge bg-danger">Rejected</span>';
+    if(status==='draft')    return '<span class="badge bg-secondary">Draft</span>';
+    return '<span class="badge bg-light text-dark">Unknown</span>';
+  }
+
+  function updateRow(item){
+    const tr = document.querySelector(`tr[data-app-id="${item.group_id}"]`);
+    if(!tr) return;
+    tr.querySelector('.col-status').innerHTML = badge(item.status);
+    if (tr.querySelector('.col-updated')) {
+      tr.querySelector('.col-updated').textContent = item.updated_at || '';
+    }
+
+    const action = tr.querySelector('.col-action');
+    if (item.status === 'rejected') {
+      action.innerHTML = `<a class="btn btn-sm btn-outline-primary" href="/groups/${item.group_id}/edit">Edit & Resubmit</a>`;
+    } else if (item.status === 'pending') {
+      action.innerHTML = `<span class="text-muted">Waiting for review…</span>`;
+    } else if (item.status === 'approved') {
+      action.innerHTML = `<a class="btn btn-sm btn-outline-success" href="/groups/${item.group_id}">View</a>`;
+    } else if (item.status === 'draft') {
+      action.innerHTML = `<a class="btn btn-sm btn-outline-primary" href="/groups/${item.group_id}/edit">Edit & Resubmit</a>`;
+    } else {
+      action.innerHTML = `<span class="text-muted">—</span>`;
+    }
+
+    const sel = `tr.row-feedback[data-app-id="${item.group_id}"]`;
+    let fbRow = document.querySelector(sel);
+    if (item.status === 'rejected' && item.feedback) {
+      if (!fbRow) {
+        const newRow = document.createElement('tr');
+        newRow.className = 'row-feedback';
+        newRow.setAttribute('data-app-id', item.group_id);
+        newRow.innerHTML = `
+          <td colspan="5">
+            <div class="alert alert-danger mb-0">
+              <strong>Feedback:</strong> <span class="feedback-text"></span>
+            </div>
+          </td>`;
+        tr.insertAdjacentElement('afterend', newRow);
+        fbRow = newRow;
+      }
+      fbRow.querySelector('.feedback-text').textContent = item.feedback;
+    } else if (fbRow) {
+      fbRow.remove();
+    }
+  }
+
+  async function poll(){
+    try{
+      const r = await fetch('/api/my/applications/status', {credentials: 'same-origin'});
+      if(!r.ok) return;
+      const data = await r.json();
+      (data.items||[]).forEach(updateRow);
+    }catch(e){ /* ignore */ }
+  }
+
+  setTimeout(poll, 800);      // First quick refresh
+  setInterval(poll, 10000);   // Poll every 10 seconds
+})();
+</script>
+{% endblock %}

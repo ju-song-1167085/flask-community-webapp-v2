@@ -1,0 +1,568 @@
+{% extends "base.html" %}
+
+{% set active_page = 'helpdesk_home' %}
+
+{% block title %}Help Request #{{ request.request_id }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="d-flex align-items-center mb-4">
+        <a href="{{ url_for('helpdesk_home') }}" class="btn btn-outline-secondary me-3">
+          <i class="bi bi-arrow-left"></i>
+        </a>
+        <h1 class="h3 mb-0 fw-bold">
+          Help Request #{{ request.request_id }}
+        </h1>
+      </div>
+
+      <div class="row">
+        <!-- Request Details -->
+        <div class="col-lg-8">
+          <div class="card mb-4">
+            <div class="card-header">
+              <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">{{ request.title }}</h5>
+                <div>
+                  {% set status_colors = {
+                    'new': 'primary',
+                    'assigned': 'info',
+                    'blocked': 'warning',
+                    'solved': 'success'
+                  } %}
+                  <span class="badge bg-{{ status_colors.get(request.status, 'secondary') }} fs-6">
+                    {{ (request.status or 'unknown').title() }}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="row mb-3">
+                <div class="col-sm-3"><strong>Category:</strong></div>
+                <div class="col-sm-9">
+                  <span class="badge bg-secondary">
+                    {{ request.category.replace('_', ' ').title() }}
+                  </span>
+                </div>
+              </div>
+              
+              <div class="row mb-3">
+                <div class="col-sm-3"><strong>Priority:</strong></div>
+                <div class="col-sm-9">
+                  {% set priority_colors = {
+                    'urgent': 'danger',
+                    'high': 'warning', 
+                    'medium': 'info',
+                    'low': 'success'
+                  } %}
+                  <span class="badge bg-{{ priority_colors.get(request.priority, 'secondary') }}">
+                    {{ (request.priority or 'unknown').title() }}
+                  </span>
+                </div>
+              </div>
+              
+              <div class="row mb-3">
+                <div class="col-sm-3"><strong>Submitted by:</strong></div>
+                <div class="col-sm-9">{{ request.first_name }} {{ request.last_name }} ({{ request.username }})</div>
+              </div>
+              
+              <div class="row mb-3">
+                <div class="col-sm-3"><strong>Assigned to:</strong></div>
+                <div class="col-sm-9">
+                  {% if request.assigned_to %}
+                    {{ request.assigned_first_name }} {{ request.assigned_last_name }}
+                    {% if request.assigned_username %}({{ request.assigned_username }}){% endif %}
+                  {% else %}
+                    <span class="text-muted">Not assigned</span>
+                  {% endif %}
+                </div>
+              </div>
+              
+              <div class="row mb-3">
+                <div class="col-sm-3"><strong>Created:</strong></div>
+                <div class="col-sm-9">{{ request.created_at | nz_date }} at {{ request.created_at | nz_time12_upper }}</div>
+              </div>
+              
+              {% if request.resolved_at %}
+              <div class="row mb-3">
+                <div class="col-sm-3"><strong>Resolved:</strong></div>
+                <div class="col-sm-9">{{ request.resolved_at | nz_date }} at {{ request.resolved_at | nz_time12_upper }}</div>
+              </div>
+              {% endif %}
+              
+              <hr>
+              
+              <div class="mb-3">
+                <strong>Description:</strong>
+              </div>
+              <div class="bg-light p-3 rounded">
+                {{ request.description | replace('\n', '<br>') | safe }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Conversation History -->
+          <div class="card">
+            <div class="card-header">
+              <h5 class="mb-0">
+                <i class="bi bi-chat-dots me-2"></i>
+                Conversation History
+              </h5>
+            </div>
+            <div class="card-body">
+              {% if replies %}
+                <div class="conversation">
+                  {% for reply in replies %}
+                  <div class="d-flex mb-4 {% if reply.platform_role in ['super_admin', 'support_technician'] %}flex-row-reverse{% endif %}">
+                    <div class="flex-shrink-0">
+                      <div class="avatar {% if reply.platform_role in ['super_admin', 'support_technician'] %}text-white{% else %}bg-secondary text-white{% endif %} rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; background-color: {% if reply.platform_role in ['super_admin', 'support_technician'] %}#2b7a43{% else %}var(--bs-secondary){% endif %};">
+                        {{ reply.first_name[0] }}{{ reply.last_name[0] }}
+                      </div>
+                    </div>
+                    <div class="flex-grow-1 ms-3 {% if reply.platform_role in ['super_admin', 'support_technician'] %}me-3 text-end{% endif %}">
+                      <div class="card {% if reply.platform_role in ['super_admin', 'support_technician'] %}text-white{% else %}bg-light{% endif %}" style="{% if reply.platform_role in ['super_admin', 'support_technician'] %}background-color: #2b7a43;{% endif %}">
+                        <div class="card-body p-3">
+                          <div class="d-flex justify-content-between align-items-start mb-2">
+                            <strong>
+                              {% if reply.platform_role in ['super_admin', 'support_technician'] %}
+                                <i class="bi bi-shield-check me-1"></i>
+                              {% endif %}
+                              {{ reply.first_name }} {{ reply.last_name }}
+                              {% if reply.platform_role == 'super_admin' %}
+                                <span class="badge bg-light ms-1" style="color: #2b7a43;">Super Admin</span>
+                              {% elif reply.platform_role == 'support_technician' %}
+                                <span class="badge bg-light ms-1" style="color: #2b7a43;">Support Tech</span>
+                              {% endif %}
+                            </strong>
+                            <small class="opacity-75">
+                              {{ reply.created_at | nz_date }} at {{ reply.created_at | nz_time12_upper }}
+                            </small>
+                          </div>
+                          <div class="reply-content">
+                            {% if reply.platform_role in ['super_admin', 'support_technician'] and '[INTERNAL_ONLY]' in reply.reply_content %}
+                              <div class="alert alert-warning mb-2 py-1 px-3" style="font-size: 0.85rem;">
+                                <i class="bi bi-eye-slash me-1" style="font-size: 0.8rem;"></i>
+                                <span style="font-size: 0.8rem;"><strong>Internal Note:</strong> This message is only visible to support staff.</span>
+                              </div>
+                            {% endif %}
+                            {% if '[REQUIRES_USER_RESPONSE]' in reply.reply_content %}
+                              <div class="alert alert-info mb-2 py-1 px-3" style="font-size: 0.85rem;">
+                                <i class="bi bi-question-circle me-1" style="font-size: 0.8rem;"></i>
+                                <span style="font-size: 0.8rem;"><strong>Awaiting User Response:</strong> This message requires a response from the user.</span>
+                              </div>
+                            {% endif %}
+                            {{ reply.reply_content | replace('[INTERNAL_ONLY]', '') | replace('[/INTERNAL_ONLY]', '') | replace('[REQUIRES_USER_RESPONSE]', '') | replace('[/REQUIRES_USER_RESPONSE]', '') | replace('\n', '<br>') | safe }}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  {% endfor %}
+                </div>
+              {% else %}
+                <div class="text-center py-4">
+                  <i class="bi bi-chat text-muted" style="font-size: 2rem;"></i>
+                  <p class="text-muted mt-2">No replies yet. Be the first to respond!</p>
+                </div>
+              {% endif %}
+
+              <!-- Reply Form -->
+              <hr>
+              {% if request.status == 'solved' %}
+              <div class="alert alert-secondary">
+                <i class="bi bi-info-circle me-2"></i>
+                This request is solved and no longer accepts replies.
+              </div>
+              {% else %}
+              {% if session.platform_role in ['super_admin','support_technician'] and (not request.assigned_to or request.assigned_to != session.user_id) %}
+              <div class="alert alert-secondary">
+                <i class="bi bi-person-check me-1"></i>
+                Only the assigned support staff can reply.
+              </div>
+              {% else %}
+              <form method="POST" action="{{ url_for('reply_to_help_request', request_id=request.request_id) }}">
+                <div class="mb-3">
+                  <label for="reply_content" class="form-label">
+                    <i class="bi bi-reply me-1"></i>
+                    Add Reply
+                  </label>
+                  <textarea class="form-control" id="reply_content" name="reply_content" 
+                            rows="4" placeholder="Type your reply here..." 
+                            maxlength="1000" required></textarea>
+                  <div class="form-text">Maximum 1000 characters</div>
+                </div>
+                
+                <!-- Support Staff Options -->
+                {% if session.platform_role in ['super_admin', 'support_technician'] %}
+                <div class="mb-3">
+                  <div class="row">
+                    <div class="col-md-4">
+                      <label class="form-label">Reply Visibility</label>
+                      <div class="form-check">
+                        <input class="form-check-input" type="radio" name="visibility" id="visibility_user" value="user_visible" checked>
+                        <label class="form-check-label" for="visibility_user">
+                          <i class="bi bi-eye me-1"></i>
+                          User Visible
+                        </label>
+                      </div>
+                      <div class="form-check">
+                        <input class="form-check-input" type="radio" name="visibility" id="visibility_internal" value="internal_only">
+                        <label class="form-check-label" for="visibility_internal">
+                          <i class="bi bi-eye-slash me-1"></i>
+                          Internal Only
+                        </label>
+                      </div>
+                    </div>
+                    <div class="col-md-8">
+                      <label class="form-label">Reply Action</label>
+                      <div class="form-check">
+                        <input class="form-check-input" type="radio" name="reply_action" id="action_normal" value="normal" checked>
+                        <label class="form-check-label" for="action_normal">
+                          <i class="bi bi-chat me-1"></i>
+                          Normal Reply (No status change)
+                        </label>
+                      </div>
+                      
+                      <!-- Show options based on current status -->
+                      {% if request.status == 'new' %}
+                        <div class="form-check">
+                          <input class="form-check-input" type="radio" name="reply_action" id="action_solved" value="mark_solved">
+                          <label class="form-check-label" for="action_solved">
+                            <i class="bi bi-check-circle me-1"></i>
+                            Mark as Solved
+                          </label>
+                        </div>
+                      {% elif request.status == 'assigned' %}
+                        <div class="form-check">
+                          <input class="form-check-input" type="radio" name="reply_action" id="action_blocked" value="requires_response">
+                          <label class="form-check-label" for="action_blocked">
+                            <i class="bi bi-question-circle me-1"></i>
+                            Requires User Response (Set to Blocked)
+                          </label>
+                        </div>
+                        <div class="form-check">
+                          <input class="form-check-input" type="radio" name="reply_action" id="action_solved" value="mark_solved">
+                          <label class="form-check-label" for="action_solved">
+                            <i class="bi bi-check-circle me-1"></i>
+                            Mark as Solved
+                          </label>
+                        </div>
+                      {% elif request.status == 'blocked' %}
+                        <div class="form-check">
+                          <input class="form-check-input" type="radio" name="reply_action" id="action_solved" value="mark_solved">
+                          <label class="form-check-label" for="action_solved">
+                            <i class="bi bi-check-circle me-1"></i>
+                            Mark as Solved
+                          </label>
+                        </div>
+                      {% elif request.status == 'solved' %}
+                        <div class="form-text text-muted">
+                          <i class="bi bi-info-circle me-1"></i>
+                          Request is already solved. No status changes available.
+                        </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+                {% endif %}
+                
+                <div class="d-flex justify-content-end">
+                  <button type="submit" class="btn text-white" style="background-color: #ec7a08;">
+                    <i class="bi bi-send me-1"></i>
+                    Send Reply
+                  </button>
+                </div>
+              </form>
+              {% endif %}
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+          <!-- Escalation Settings (for support staff) -->
+          {% if session.platform_role in ['super_admin', 'support_technician'] %}
+          <div class="card mb-4">
+            <div class="card-header">
+              <h5 class="mb-0">
+                <i class="bi bi-arrow-up-circle me-2"></i>
+                Escalation Settings
+              </h5>
+            </div>
+            <div class="card-body">
+              <form method="POST" action="{{ url_for('update_request_status', request_id=request.request_id) }}">
+                <!-- Hidden status field to maintain current status -->
+                <input type="hidden" name="status" value="{{ request.status }}">
+                
+                <div class="mb-3">
+                  <label for="priority" class="form-label">Priority</label>
+                  <select class="form-select" id="priority" name="priority" required {% if request.status == 'solved' or (request.priority == 'high' and session.platform_role != 'super_admin') %}disabled{% endif %}>
+                    <option value="low" {% if request.priority == 'low' %}selected{% endif %}>Low</option>
+                    <option value="medium" {% if request.priority == 'medium' %}selected{% endif %}>Medium</option>
+                    <option value="high" {% if request.priority == 'high' %}selected{% endif %}>High</option>
+                    <option value="urgent" {% if request.priority == 'urgent' %}selected{% endif %}>Urgent</option>
+                  </select>
+                  {% if request.status == 'solved' %}
+                  <input type="hidden" name="priority" value="{{ request.priority }}">
+                  {% elif request.priority == 'high' and session.platform_role != 'super_admin' %}
+                  <input type="hidden" name="priority" value="{{ request.priority }}">
+                  {% endif %}
+                </div>
+                
+                <div class="mb-3">
+                  <label for="assigned_to" class="form-label">Assign to</label>
+                  <select class="form-select" id="assigned_to" name="assigned_to" {% if request.status == 'solved' or (request.priority == 'high' and session.platform_role != 'super_admin') %}disabled{% endif %}>
+                    <option value="">Unassigned</option>
+                    {% for staff in support_staff %}
+                    <option value="{{ staff.user_id }}" 
+                            {% if request.assigned_to == staff.user_id %}selected{% endif %}>
+                      {{ staff.first_name }} {{ staff.last_name }} 
+                      ({{ staff.platform_role.replace('_', ' ').title() }})
+                    </option>
+                    {% endfor %}
+                  </select>
+                  {% if request.status == 'solved' %}
+                  <input type="hidden" name="assigned_to" value="{{ request.assigned_to or '' }}">
+                  {% elif request.priority == 'high' and session.platform_role != 'super_admin' %}
+                  <input type="hidden" name="assigned_to" value="{{ request.assigned_to or '' }}">
+                  {% endif %}
+                  {% if request.priority == 'high' %}
+                  <div class="form-text text-warning">
+                    <i class="bi bi-exclamation-triangle me-1"></i>
+                    High priority requests can only be assigned to Super Admins
+                  </div>
+                  {% elif request.priority == 'urgent' %}
+                  <div class="form-text text-success">
+                    <i class="bi bi-lightning me-1"></i>
+                    Urgent requests can be assigned to any available support staff for quick response
+                  </div>
+                  {% endif %}
+                </div>
+                
+                <button type="submit" class="btn btn-warning w-100" {% if request.status == 'solved' or (request.priority == 'high' and session.platform_role != 'super_admin') %}disabled{% endif %}>
+                  <i class="bi bi-arrow-up-circle me-1"></i>
+                  Update Escalation Settings
+                </button>
+                {% if request.status == 'solved' %}
+                <div class="form-text text-muted mt-2">
+                  <i class="bi bi-info-circle me-1"></i>
+                  This request is solved and cannot be modified.
+                </div>
+                {% elif request.priority == 'high' and session.platform_role != 'super_admin' %}
+                <div class="form-text text-muted mt-2">
+                  <i class="bi bi-info-circle me-1"></i>
+                  Only Super Admins can modify escalation settings for high priority requests.
+                </div>
+                {% endif %}
+              </form>
+              
+              <!-- Quick Assignment Actions -->
+              <hr>
+              <div class="d-grid gap-2">
+                {% if not request.assigned_to and request.status == 'new' %}
+                  <!-- Assign to me - only show if unassigned and status is new -->
+                  <form method="POST" action="{{ url_for('take_request', request_id=request.request_id) }}" class="d-inline">
+                    <button type="submit" class="btn btn-success w-100">
+                      <i class="bi bi-person-plus me-1"></i>
+                      Assign to Me
+                    </button>
+                  </form>
+                {% elif request.assigned_to == session.user_id and request.status in ['assigned', 'blocked'] %}
+                  <!-- Unassign - only show if assigned to current user and status allows transition to new -->
+                  <form method="POST" action="{{ url_for('drop_request', request_id=request.request_id) }}" class="d-inline">
+                    <button type="submit" class="btn btn-danger w-100" 
+                            onclick="return confirm('Unassign yourself from this request?')">
+                      <i class="bi bi-person-dash me-1"></i>
+                      Unassign Request
+                    </button>
+                  </form>
+                {% elif request.assigned_to and request.assigned_to != session.user_id %}
+                  <!-- Show who it's assigned to -->
+                  <div class="alert text-center" style="background:#F3E5D7; border:1px solid #E8D5C3; color:#6B4F3A;">
+                    <i class="bi bi-person-check me-1"></i>
+                    <strong>Assigned to:</strong><br>
+                    {{ request.assigned_first_name }} {{ request.assigned_last_name }}
+                  </div>
+                {% elif request.status == 'solved' %}
+                  <!-- Show solved status -->
+                  <div class="alert alert-success text-center">
+                    <i class="bi bi-check-circle me-1"></i>
+                    <strong>Request Solved</strong><br>
+                    No further action needed
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          {% endif %}
+
+          <!-- Request Statistics -->
+          <div class="card">
+            <div class="card-header">
+              <h5 class="mb-0">
+                <i class="bi bi-graph-up me-2"></i>
+                Request Statistics
+              </h5>
+            </div>
+            <div class="card-body">
+              <div class="row text-center">
+                <div class="col-6">
+                  <div class="border-end">
+                    <h4 class="text-primary mb-1">{{ replies | length }}</h4>
+                    <small class="text-muted">Replies</small>
+                  </div>
+                </div>
+                <div class="col-6">
+                  <h4 class="text-info mb-1">
+                    {% set days = (request.updated_at - request.created_at).days %}
+                    {{ days }}d
+                  </h4>
+                  <small class="text-muted">Processing Time</small>
+                </div>
+              </div>
+              
+              {% if request.last_staff_reply_at %}
+              <hr>
+              <div class="text-center">
+                <small class="text-muted">Last staff reply:</small><br>
+                <strong>{{ request.last_staff_reply_at | nz_date }} at {{ request.last_staff_reply_at | nz_time12_upper }}</strong>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts_extra %}
+<script>
+// Update assignment dropdown based on priority selection
+document.addEventListener('DOMContentLoaded', function() {
+    const prioritySelect = document.getElementById('priority');
+    const assignedToSelect = document.getElementById('assigned_to');
+    
+    if (prioritySelect && assignedToSelect) {
+        // Store all staff data
+        const allStaff = [
+            {% for staff in support_staff %}
+            {
+                id: '{{ staff.user_id }}',
+                name: '{{ staff.first_name }} {{ staff.last_name }}',
+                role: '{{ staff.platform_role.replace("_", " ").title() }}',
+                isSuperAdmin: {{ 'true' if staff.platform_role == 'super_admin' else 'false' }}
+            }{% if not loop.last %},{% endif %}
+            {% endfor %}
+        ];
+        
+        // Store current assignment
+        const currentAssignedTo = assignedToSelect.value;
+        
+        function updateAssignmentDropdown() {
+            const selectedPriority = prioritySelect.value;
+            
+            // Clear current options except "Unassigned"
+            assignedToSelect.innerHTML = '<option value="">Unassigned</option>';
+            
+            // Add appropriate staff based on priority
+            if (selectedPriority === 'high') {
+                // Only show Super Admins for high priority
+                allStaff.forEach(staff => {
+                    if (staff.isSuperAdmin) {
+                        const option = document.createElement('option');
+                        option.value = staff.id;
+                        option.textContent = `${staff.name} (${staff.role})`;
+                        if (staff.id === currentAssignedTo) {
+                            option.selected = true;
+                        }
+                        assignedToSelect.appendChild(option);
+                    }
+                });
+            } else {
+                // Show all support staff for normal/low/urgent priority
+                allStaff.forEach(staff => {
+                    const option = document.createElement('option');
+                    option.value = staff.id;
+                    option.textContent = `${staff.name} (${staff.role})`;
+                    if (staff.id === currentAssignedTo) {
+                        option.selected = true;
+                    }
+                    assignedToSelect.appendChild(option);
+                });
+            }
+        }
+        
+        // Add event listener
+        prioritySelect.addEventListener('change', updateAssignmentDropdown);
+        
+        // Initial update
+        updateAssignmentDropdown();
+    }
+    
+    // Handle Internal Only checkbox - disable Reply Action when checked
+    const visibilityUser     = document.getElementById('visibility_user');
+    const visibilityInternal = document.getElementById('visibility_internal');
+    const replyActionRadios  = document.querySelectorAll('input[name="reply_action"]');
+
+    function setReplyActionsEnabled(enabled) {
+      replyActionRadios.forEach(radio => {
+        const wrapper = radio.closest('.form-check');
+        radio.disabled = !enabled;
+        if (!enabled) radio.checked = false; // Clear the selected setting when switching to Internal Only
+        if (wrapper) {
+          wrapper.style.opacity = enabled ? '1' : '0.5';
+          wrapper.style.pointerEvents = enabled ? 'auto' : 'none';
+        }
+      });
+
+      if (enabled && !document.querySelector('input[name="reply_action"]:checked')) {
+        const normal = document.getElementById('action_normal');
+        if (normal) normal.checked = true;
+      }
+    }
+
+    function updateReplyActions() {
+      const isInternal = visibilityInternal && visibilityInternal.checked;
+      setReplyActionsEnabled(!isInternal);
+    }
+
+    updateReplyActions();
+    [visibilityUser, visibilityInternal].forEach(el => {
+      if (el) el.addEventListener('change', updateReplyActions);
+    });
+    
+    // Handle Mark as Solved checkbox - allow submission without reply content
+    const markSolvedCheckbox = document.getElementById('action_solved');
+    const replyTextarea = document.getElementById('reply_content');
+    const submitButton = document.querySelector('button[type="submit"]');
+    
+    if (markSolvedCheckbox && replyTextarea && submitButton) {
+        function toggleSubmitButton() {
+            const isMarkSolved = markSolvedCheckbox.checked;
+            const hasContent = replyTextarea.value.trim().length > 0;
+            
+            if (isMarkSolved) {
+                // Mark as Solved selected - allow submission even without content
+                submitButton.disabled = false;
+                replyTextarea.required = false;
+            } else {
+                // Other actions - require content
+                submitButton.disabled = !hasContent;
+                replyTextarea.required = true;
+            }
+        }
+        
+        // Add event listeners
+        markSolvedCheckbox.addEventListener('change', toggleSubmitButton);
+        replyTextarea.addEventListener('input', toggleSubmitButton);
+        
+        // Initial state
+        toggleSubmitButton();
+    }
+});
+</script>
+{% endblock %}

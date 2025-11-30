@@ -1,0 +1,444 @@
+{% extends 'base.html' %}
+
+{% block title %}Home{% endblock %}
+{% set active_page = 'home' %}
+{% set hide_sidebar = true %}
+
+{% block head_extra %}
+  <!-- Page-specific component styles -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/_event_card.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/_group_card.css') }}">
+{% endblock %}
+
+{# Top navigation override for main_home.html #}
+{% block navbar_right %}
+  <ul class="navbar-nav ms-auto align-items-center">
+    <li class="nav-item">
+      <a class="nav-link{{ ' active' if active_page=='home' else '' }}" href="{{ url_for('main_home') }}">Home</a>
+    </li>
+    <!-- Browse Events (Always visible, with dropdown for Managers and Admins) -->
+    <li class="nav-item{% if session.get('group_role') == 'manager' or session.get('platform_role') == 'super_admin' %} dropdown{% endif %}">
+      {% if session.get('group_role') == 'manager' or session.get('platform_role') == 'super_admin' %}
+      <a class="nav-link dropdown-toggle{{ ' active' if active_page in ['search_explore', 'manage_events'] else '' }}"
+         href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+        Browse Events
+      </a>
+      <ul class="dropdown-menu dropdown-menu-end" data-bs-boundary="viewport" data-bs-offset="0,8">
+        <li>
+          <a class="dropdown-item"
+             href="{{ url_for('explore') }}">
+            Browse Events
+          </a>
+        </li>
+        <li>
+          <a class="dropdown-item"
+             href="{{ url_for('manage_events') }}">
+            Manage Events
+          </a>
+        </li>
+      </ul>
+      {% else %}
+      <a class="nav-link{{ ' active' if active_page=='search_explore' else '' }}"
+        href="{{ url_for('explore') }}"
+        {% if active_page=='search_explore' %}aria-current="page"{% endif %}>Browse Events</a>
+      {% endif %}
+    </li>
+
+    {% if session.get('loggedin') %}
+      <!-- User is logged in - Show role-based dashboard link -->
+      <li class="nav-item">
+        {% set _platform_role = session.get('platform_role') %}
+        {% set _group_role = session.get('group_role') %}
+        
+        {% if _platform_role == 'super_admin' %}
+          <a class="nav-link" href="{{ url_for('admin_dashboard') }}">
+            <i class="bi bi-speedometer2"></i> Admin Dashboard
+          </a>
+        {% elif _platform_role == 'support_technician' %}
+          <a class="nav-link" href="{{ url_for('support_dashboard') }}">
+            <i class="bi bi-tools"></i> Support Dashboard
+          </a>
+        {% elif _platform_role == 'participant' %}
+          {% if _group_role == 'manager' %}
+            <a class="nav-link" href="{{ url_for('group_manager_dashboard') }}">
+              <i class="bi bi-people"></i> Manager Dashboard
+            </a>
+          {% elif _group_role == 'volunteer' %}
+            <a class="nav-link" href="{{ url_for('participant_dashboard') }}">
+              <i class="bi bi-person"></i> My Dashboard
+            </a>
+          {% else %}
+            <a class="nav-link" href="{{ url_for('participant_dashboard') }}">
+              <i class="bi bi-person"></i> My Dashboard
+            </a>
+          {% endif %}
+        {% else %}
+          <a class="nav-link" href="{{ url_for('main_home') }}">
+            <i class="bi bi-house"></i> Dashboard
+          </a>
+        {% endif %}
+      </li>
+      
+      <!-- User dropdown menu -->
+      <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+          <i class="bi bi-person-circle"></i> {{ session.get('username') }}
+        </a>
+        <ul class="dropdown-menu dropdown-menu-end" data-bs-boundary="viewport" data-bs-offset="0,8">
+          {% set _platform_role = session.get('platform_role') %}
+          {% set _group_role = session.get('group_role') %}
+
+          {% if _platform_role == 'super_admin' %}
+            <li><a class="dropdown-item" href="{{ url_for('admin_dashboard') }}" tabindex="-1">
+              Admin Dashboard</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('participant_dashboard') }}" tabindex="-1">
+              Participant View</a></li>
+          {% elif _platform_role == 'support_technician' %}
+            <li><a class="dropdown-item" href="{{ url_for('support_dashboard') }}" tabindex="-1">
+              Support Dashboard</a></li>
+            <li><a class="dropdown-item" href="{{ url_for('participant_dashboard') }}" tabindex="-1">
+              Participant View</a></li>
+          {% elif _platform_role == 'participant' %}
+            {% if _group_role == 'manager' %}
+              <li><a class="dropdown-item" href="{{ url_for('group_manager_dashboard') }}" tabindex="-1">
+                Manager Dashboard</a></li>
+            {% elif _group_role == 'volunteer' %}
+              <li><a class="dropdown-item" href="{{ url_for('participant_dashboard') }}" tabindex="-1">
+                My Dashboard</a></li>
+            {% else %}
+              <li><a class="dropdown-item" href="{{ url_for('participant_dashboard') }}" tabindex="-1">
+                My Dashboard</a></li>
+            {% endif %}
+            <li><a class="dropdown-item" href="{{ url_for('helpdesk_home') }}" tabindex="-1">
+              Helpdesk</a></li>
+          {% endif %}
+          
+          <li>
+            <a class="dropdown-item" href="{{ url_for('profile_view', user_id=session.get('user_id')) }}" tabindex="-1">
+              Profile
+            </a>
+          </li>
+          
+          <!-- Helpdesk - Only for admin and support technician -->
+          {% if _platform_role in ['super_admin', 'support_technician'] %}
+          <li>
+            <a class="dropdown-item" href="{{ url_for('helpdesk_home') }}" tabindex="-1">
+              Helpdesk
+            </a>
+          </li>
+          {% endif %}
+          <li><hr class="dropdown-divider" /></li>
+          
+          <!-- Notifications (All Roles) -->
+          <li>
+            <a class="dropdown-item position-relative" href="{{ url_for('notifications_page') }}" tabindex="-1">
+              Notifications
+              <span id="dropdown-notification-badge" 
+                    class="position-absolute end-0 me-3 badge rounded-pill bg-danger" 
+                    style="display: none; font-size: 10px;">
+              </span>
+            </a>
+          </li>
+          
+          <li>
+            <a class="dropdown-item" href="{{ url_for('logout') }}" tabindex="-1">
+              Logout
+            </a>
+          </li>
+        </ul>
+      </li>
+    {% else %}
+      <!-- User is not logged in - Show login/register buttons -->
+      <li class="nav-item">
+        <a class="btn btn-sm btn-light me-2" href="{{ url_for('login') }}">
+          <i class="bi bi-box-arrow-in-right"></i> Login
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="btn btn-sm btn-outline-light" href="{{ url_for('signup') }}">
+          <i class="bi bi-person-plus"></i> Register
+        </a>
+      </li>
+    {% endif %}
+  </ul>
+{% endblock %}
+
+{% block content %}
+
+<!-- ========== HERO CAROUSEL SECTION ========== -->
+<div id="heroCarousel" class="carousel slide carousel-fade" data-bs-ride="carousel">
+  <!-- Carousel Indicators -->
+  <div class="carousel-indicators">
+    <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>
+    <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="1" aria-label="Slide 2"></button>
+    <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="2" aria-label="Slide 3"></button>
+  </div>
+
+  <!-- Carousel Inner -->
+  <div class="carousel-inner">
+    <!-- Slide 1 -->
+    <div class="carousel-item active" data-bs-interval="5000">
+      <img 
+        src="{{ url_for('static', filename='images/main_home.jpg') }}" 
+        class="d-block w-100" 
+        alt="Community fitness activities"
+      >
+      <div class="carousel-caption d-none d-md-block" style="text-align: center;">
+        <h1 class="carousel-title">South Island Community Fitness</h1>
+        <p class="carousel-subtitle">Free weekly running, walking & cycling events across South Island</p>
+        <div class="carousel-cta-group">
+          {% if not session.get('loggedin') %}
+            <a href="{{ url_for('signup') }}" class="btn btn-carousel-primary">
+              <i class="bi bi-person-plus"></i> Join Community
+            </a>
+          {% endif %}
+          
+          <a href="{{ url_for('search_events') }}" class="btn btn-carousel-secondary">
+            <i class="bi bi-play-circle"></i> Explore Events
+          </a>
+          
+          {% if session.get('loggedin') %}
+            <a href="{{ url_for('participant_dashboard') }}" class="btn btn-carousel-secondary">
+              <i class="bi bi-graph-up"></i> My Dashboard
+            </a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 2 -->
+    <div class="carousel-item" data-bs-interval="5000">
+      <img 
+        src="{{ url_for('static', filename='images/events/swimming.jpg') }}" 
+        class="d-block w-100" 
+        alt="Swimming events"
+        style="object-position: center top;"
+      >
+      <div class="carousel-caption d-none d-md-block" style="text-align: center;">
+        <h1 class="carousel-title">Dive Into Swimming</h1>
+        <p class="carousel-subtitle">Make a splash with our swimming events in beautiful South Island waters</p>
+        <div class="carousel-cta-group">
+          <a href="{{ url_for('explore', tab='events', event_type='Swimming') }}" class="btn btn-carousel-secondary">
+            <i class="bi bi-water"></i> Find Swimming Events
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 3 -->
+    <div class="carousel-item" data-bs-interval="5000">
+      <img 
+        src="{{ url_for('static', filename='images/events/cyclying2.jpg') }}" 
+        class="d-block w-100" 
+        alt="Marathon events"
+      >
+      <div class="carousel-caption d-none d-md-block" style="text-align: center;">
+        <h1 class="carousel-title">Challenge Yourself</h1>
+        <p class="carousel-subtitle">Take on the ultimate test with our cycling events across South Island</p>
+        <div class="carousel-cta-group">
+          <a href="{{ url_for('explore', tab='events', event_type='Cycling') }}" class="btn btn-carousel-secondary">
+            <i class="bi bi-bicycle"></i> Find Cycling Events
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Carousel Controls -->
+  <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev">
+    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+    <span class="visually-hidden">Previous</span>
+  </button>
+  <button class="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next">
+    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+    <span class="visually-hidden">Next</span>
+  </button>
+</div>
+
+<!-- ========== ABOUT SECTION ========== -->
+<section class="py-5">
+  <div class="container">
+    <div class="about-section">
+      <div class="row align-items-center">
+        <!-- About Text -->
+        <div class="col-lg-8">
+          <h2 class="about-title">About Activeventure</h2>
+          <p class="about-description">
+            Activeventure is a community initiative offering <strong>free weekly fitness activities</strong> 
+            such as 5k runs, walks, and rides in parks across New Zealand's South Island. 
+            Open to all ages and fitness levels, supported entirely by volunteers.
+          </p>
+          
+          <!-- Key Features -->
+          <div class="about-features">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <div class="feature-item">
+                  <i class="bi bi-heart-pulse text-primary"></i>
+                  <div>
+                    <h5>Free Activities</h5>
+                    <p class="mb-0">All events are completely free for everyone</p>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="feature-item">
+                  <i class="bi bi-people text-success"></i>
+                  <div>
+                    <h5>Community Driven</h5>
+                    <p class="mb-0">Run entirely by dedicated volunteers</p>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="feature-item">
+                  <i class="bi bi-geo-alt text-warning"></i>
+                  <div>
+                    <h5>South Island Wide</h5>
+                    <p class="mb-0">Events across beautiful South Island locations</p>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="feature-item">
+                  <i class="bi bi-person-check text-info"></i>
+                  <div>
+                    <h5>All Fitness Levels</h5>
+                    <p class="mb-0">Welcoming participants of all abilities</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- About Image -->
+        <div class="col-lg-4">
+          <div class="about-image">
+            <img src="{{ url_for('static', filename='images/about_home.jpg') }}" 
+                 alt="Community fitness activities" 
+                 class="img-fluid rounded shadow">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== UPCOMING EVENTS SECTION ========== -->
+<section class="events-section py-5" id="events">
+  <div class="container">
+    <h2 class="section-title">Upcoming Events</h2>
+    
+    {% if upcoming_events %}
+      <div class="row g-4">
+        {% for event in upcoming_events %}
+        <div class="col-lg-4 col-md-6">
+          <div class="event-card">
+            <!-- Event Image Wrapper -->
+            <div class="event-image-wrapper">
+              <!-- Event Image -->
+              {% if event.event_type|lower == 'cycling' %}
+                <img src="{{ url_for('static', filename='images/events/cycling.jpg') }}" alt="{{ event.event_type }}" class="event-image">
+              {% elif event.event_type|lower == 'park walk' %}
+                <img src="{{ url_for('static', filename='images/events/park_walk.jpg') }}" alt="{{ event.event_type }}" class="event-image">
+              {% elif event.event_type|lower == 'fun run' %}
+                <img src="{{ url_for('static', filename='images/events/fun_run.jpg') }}" alt="{{ event.event_type }}" class="event-image">
+              {% elif event.event_type|lower == 'trail running' %}
+                <img src="{{ url_for('static', filename='images/events/5km_run.jpg') }}" alt="{{ event.event_type }}" class="event-image">
+              {% elif event.event_type|lower == 'swimming' %}
+                <img src="{{ url_for('static', filename='images/events/swimming.jpg') }}" alt="{{ event.event_type }}" class="event-image">
+              {% elif event.event_type|lower == 'marathon' %}
+                <img src="{{ url_for('static', filename='images/events/marathon.jpg') }}" alt="{{ event.event_type }}" class="event-image">
+              {% else %}
+                <img src="{{ url_for('static', filename='images/events/coming_soon.jpg') }}" alt="{{ event.event_type }}" class="event-image">
+              {% endif %}
+              
+              <!-- Event Type Badge -->
+              <div class="event-type-badge {% if event.event_type|lower == 'cycling' %}badge-cycling{% elif event.event_type|lower == 'park walk' %}badge-walk{% else %}badge-running{% endif %}">
+                {% if event.event_type|lower == 'cycling' %}
+                  <i class="bi bi-bicycle"></i>
+                {% elif event.event_type|lower == 'park walk' %}
+                  <i class="bi bi-flower1"></i>
+                {% else %}
+                  <i class="bi bi-compass"></i>
+                {% endif %}
+                {{ event.event_type }}
+              </div>
+            </div>
+            
+            <!-- Event Content -->
+            <div class="event-content">
+              <h3 class="event-title">{{ event.event_title }}</h3>
+              
+              <!-- Event Meta Information -->
+              <div class="event-meta">
+                <div class="event-meta-item">
+                  <i class="bi bi-calendar-event"></i>
+                  <span>{{ event.event_date|nz_date if event.event_date else 'Date TBA' }}</span>
+                </div>
+                {% if event.event_time %}
+                <div class="event-meta-item">
+                  <i class="bi bi-clock"></i>
+                  <span>{{ event.event_time|nz_time12_upper }}</span>
+                </div>
+                {% endif %}
+              </div>
+              
+              <!-- Event Location -->
+              <div class="event-location">
+                <i class="bi bi-geo-alt"></i>
+                <span>{{ event.location }}</span>
+              </div>
+              
+              <!-- Event Stats (Placeholder for participant count) -->
+              <div class="event-stats">
+                <span class="stat-badge">
+                  <i class="bi bi-person-check"></i> Event Details Available
+                </span>
+              </div>
+              
+              <!-- View Details Button -->
+              <a href="{{ url_for('event_detail', event_id=event.event_id) }}" class="btn btn-event-details">
+                View Details <i class="bi bi-arrow-right"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <!-- Empty state when no upcoming events -->
+      <div class="empty-state">
+        <div class="empty-state-content">
+          <i class="bi bi-calendar-x"></i>
+          <p class="empty-state-text">No upcoming events scheduled at the moment.</p>
+          <a href="{{ url_for('search_events') }}"
+              class="btn btn-primary home-empty-cta">
+              <i class="bi bi-search"></i> Browse All Events
+          </a>
+
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Smooth scroll for anchor links
+  document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function (e) {
+      const href = this.getAttribute('href');
+      if (href !== '#' && document.querySelector(href)) {
+        e.preventDefault();
+        document.querySelector(href).scrollIntoView({
+          behavior: 'smooth'
+        });
+      }
+    });
+  });
+</script>
+{% endblock %}

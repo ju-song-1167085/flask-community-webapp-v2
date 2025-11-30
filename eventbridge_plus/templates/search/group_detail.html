@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+{% block title %}{{ group.name }}{% endblock %}
+
+{% block content %}
+<main id="group-detail" class="container py-4">
+  {% if group %}
+    <h1 class="mb-2">{{ group.name }}</h1>
+    <p class="text-muted mb-3">
+      {{ group.group_type|capitalize }} Group
+      {% if group.location %}
+        • {{ group.location }}
+      {% endif %}
+    </p>
+
+    <div class="mb-3">
+      <span class="badge bg-light text-dark border me-2">
+        <i class="bi bi-people"></i> {{ group.member_count }} / {{ group.max_members }} Members
+      </span>
+      <span class="badge bg-light text-dark border me-2">
+        <i class="bi bi-calendar-event"></i> {{ group.upcoming_events_count }} Upcoming Events
+      </span>
+      {% if group.manager_username %}
+        <span class="badge text-white me-2" style="background-color: #ff6b35;">
+          <i class="bi bi-person-gear"></i> Manager: {{ group.manager_username }}
+        </span>
+      {% else %}
+        <span class="badge text-white me-2" style="background-color: #ff6b35; opacity: 0.7;">
+          <i class="bi bi-person-gear"></i> Manager: Not assigned
+        </span>
+      {% endif %}
+      {% if group.is_public %}
+        <span class="badge bg-success">Public</span>
+      {% else %}
+        <span class="badge bg-secondary">Private</span>
+      {% endif %}
+    </div>
+
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5 class="mb-0">About This Group</h5>
+      </div>
+      <div class="card-body">
+        <p class="mb-0">{{ group.description or 'No description available.' }}</p>
+      </div>
+    </div>
+
+    <!-- Analytics Button (for Group Managers and Super Admins) -->
+    {% if session.get('loggedin') and (user_group_role == 'manager' or session.get('platform_role') == 'super_admin') %}
+    <div class="mb-3">
+      <a href="{{ url_for('group_analytics', group_id=group.group_id) }}" class="btn btn-success">
+        <i class="bi bi-graph-up-arrow me-2"></i>View Analytics
+      </a>
+    </div>
+    {% endif %}
+
+
+    <!-- Join/Leave Buttons -->
+    <div class="mb-4">
+      {% if session.get('loggedin') %}
+        {% if user_membership %}
+          {% if user_membership.status == 'active' %}
+            <div class="alert alert-success d-flex justify-content-between align-items-center">
+              <span><i class="bi bi-check-circle me-2"></i>You are a member of this group</span>
+              <a href="{{ url_for('group_leave', group_id=group.group_id) }}" 
+                 class="btn btn-outline-danger"
+                 onclick="return confirm('Are you sure you want to leave this group?')">
+                <i class="bi bi-box-arrow-right me-1"></i>Leave Group
+              </a>
+            </div>
+          {% elif user_membership.status == 'pending' %}
+            <div class="alert alert-warning d-flex justify-content-between align-items-center">
+              <span><i class="bi bi-clock me-2"></i>Your request to join this group is pending approval</span>
+              <form method="POST" action="{{ url_for('cancel_group_request', group_id=group.group_id) }}" class="d-inline">
+                <button type="submit" class="btn btn-outline-danger btn-sm"
+                        onclick="return confirm('Are you sure you want to cancel your request to join this group?')">
+                  <i class="bi bi-x-circle me-1"></i>Cancel Request
+                </button>
+              </form>
+            </div>
+          {% else %}
+            <div class="alert alert-info">
+              <i class="bi bi-clock me-2"></i>Your membership status: {{ user_membership.status|title }}
+            </div>
+          {% endif %}
+        {% else %}
+          {% if group.member_count >= group.max_members %}
+            <div class="alert alert-warning">
+              <i class="bi bi-exclamation-triangle me-2"></i>This group has reached maximum capacity.
+            </div>
+          {% else %}
+            <a href="{{ url_for('group_join', group_id=group.group_id) }}" 
+               class="btn btn-primary btn-lg">
+              {% if group.is_public %}
+                <i class="bi bi-plus-circle me-2"></i>Join Group
+              {% else %}
+                <i class="bi bi-envelope me-2"></i>Request to Join
+              {% endif %}
+            </a>
+          {% endif %}
+        {% endif %}
+      {% else %}
+        <a href="{{ url_for('login', next=url_for('group_detail', group_id=group.group_id)) }}"
+           class="btn btn-primary btn-lg">
+          <i class="bi bi-box-arrow-in-right me-2"></i>Sign in to Join
+        </a>
+      {% endif %}
+    </div>
+
+    <!-- Upcoming Events -->
+    {% if upcoming_events %}
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5 class="mb-0">Upcoming Events</h5>
+      </div>
+      <div class="card-body">
+        <div class="list-group list-group-flush">
+          {% for event in upcoming_events %}
+          <div class="list-group-item d-flex justify-content-between align-items-start">
+            <div class="ms-2 me-auto">
+              <div class="fw-bold">
+                {{ event.event_title }}
+                {% if event.is_registered %}
+                  {% if event.user_event_role == 'volunteer' %}
+                    <span class="badge bg-warning text-dark ms-2">
+                      <i class="bi bi-check-circle-fill me-1"></i>Registered (Volunteer)
+                    </span>
+                  {% else %}
+                    <span class="badge bg-success ms-2">
+                      <i class="bi bi-check-circle-fill me-1"></i>Registered
+                    </span>
+                  {% endif %}
+                {% endif %}
+              </div>
+              <div class="text-muted small">
+                <i class="bi bi-calendar me-1"></i>{{ event.event_date|nz_date }}
+                <i class="bi bi-clock ms-2 me-1"></i>{{ event.event_time|nz_time12_upper }}
+              </div>
+              <div class="text-muted small">
+                <i class="bi bi-geo-alt me-1"></i>{{ event.location }}
+                <span class="badge bg-light text-dark ms-2">{{ event.event_type }}</span>
+              </div>
+            </div>
+            <div class="d-flex flex-column align-items-end gap-2">
+              <span class="badge bg-light text-dark">
+                {{ event.registered_count }} / {{ event.max_participants }} registered
+              </span>
+              {% if event.is_full %}
+                <span class="badge bg-danger">Full</span>
+              {% endif %}
+              <a href="{{ url_for('event_detail', event_id=event.event_id) }}" 
+                 class="btn btn-sm btn-outline-primary">View Event</a>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="alert alert-light border">
+      {% if events_hidden_due_to_privacy %}
+        <i class="bi bi-lock me-2"></i>Events are only visible to group members. Join this group to see upcoming events.
+      {% else %}
+        <i class="bi bi-calendar-x me-2"></i>No upcoming events scheduled.
+      {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Group Members -->
+    {% if group_members %}
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5 class="mb-0">Group Members</h5>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          {% for member in group_members %}
+          <div class="col-md-4 col-sm-6 mb-2">
+            <div class="d-flex align-items-center">
+              <i class="bi bi-person-circle me-2 text-muted"></i>
+              <span>{{ member.username }}</span>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <p class="mt-4">
+      <a href="javascript:void(0)" onclick="window.history.back(); return false;">
+        <i class="bi bi-arrow-left me-1"></i>Go back
+      </a>
+    </p>
+  {% else %}
+    <div class="alert alert-warning">Group not found.</div>
+  {% endif %}
+</main>
+{% endblock %}

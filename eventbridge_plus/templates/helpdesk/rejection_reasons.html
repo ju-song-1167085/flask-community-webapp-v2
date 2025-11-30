@@ -1,0 +1,205 @@
+{% extends 'base.html' %}
+{% block title %}{% if is_user_view %}My Rejection History{% else %}Rejection History - Helpdesk{% endif %}{% endblock %}
+{% set active_page = 'helpdesk_home' %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="row">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0 fw-bolder">
+          <i class="bi bi-x-circle text-danger me-2"></i>
+          {% if is_user_view %}My Rejection History{% else %}Rejection History{% endif %}
+        </h1>
+        <div class="d-flex gap-2">
+          {% if is_user_view %}
+            <a href="{{ url_for('my_applications_page') }}" class="btn btn-outline-secondary">
+              <i class="bi bi-arrow-left me-1"></i>Back to Applications
+            </a>
+          {% else %}
+            <a href="{{ url_for('support_manage') }}" class="btn btn-outline-secondary">
+              <i class="bi bi-arrow-left me-1"></i>Back to Helpdesk
+            </a>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div class="card mb-4">
+        <div class="card-body">
+          <form method="GET" class="row g-3">
+            <div class="col-md-3">
+              <label for="type" class="form-label">Rejection Type</label>
+              <select class="form-select" id="type" name="type">
+                <option value="">All Types</option>
+                <option value="group_creation" {% if current_filters.type == 'group_creation' %}selected{% endif %}>Group Creation Application</option>
+                <option value="group_membership" {% if current_filters.type == 'group_membership' %}selected{% endif %}>Group Role Request</option>
+                <option value="group_request" {% if current_filters.type == 'group_request' %}selected{% endif %}>Group Join Request</option>
+              </select>
+            </div>
+            
+            {% if not is_user_view %}
+            <div class="col-md-3">
+              <label for="user_search" class="form-label">User Search</label>
+              <input type="text" class="form-control" id="user_search" name="user_search" 
+                     placeholder="Search by username or name" value="{{ current_filters.user_search or '' }}">
+            </div>
+            
+            <div class="col-md-3">
+              <label for="group_search" class="form-label">Group Search</label>
+              <input type="text" class="form-control" id="group_search" name="group_search" 
+                     placeholder="Search by group name" value="{{ current_filters.group_search or '' }}">
+            </div>
+            {% endif %}
+            
+            {% if is_user_view %}
+            <div class="col-12 col-md-3 d-flex align-items-end justify-content-end">
+              <div class="d-flex gap-1">
+                <button type="submit" class="btn btn-activeloop btn-extra-compact icon-bold" title="Search" aria-label="Search">
+                  <i class="bi bi-search"></i>
+                </button>
+                <a href="{{ url_for('user_rejection_history') }}" class="btn btn-outline-activeloop btn-extra-compact icon-bold" title="Reset" aria-label="Reset">
+                  <i class="bi bi-arrow-counterclockwise"></i>
+                </a>
+              </div>
+            </div>
+            {% else %}
+            <div class="col-12">
+              <button type="submit" class="btn btn-primary me-2">
+                <i class="bi bi-search me-1"></i>Apply Filters
+              </button>
+              <a href="{{ url_for('support_rejection_history') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-x-circle me-1"></i>Clear Filters
+              </a>
+            </div>
+            {% endif %}
+          </form>
+        </div>
+      </div>
+
+      <!-- Rejection Reasons List -->
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">Rejection History ({{ pagination.total if pagination else 0 }} records)</h5>
+        </div>
+        <div class="card-body">
+          {% if rejections %}
+            <div class="table-responsive">
+              <table class="table table-hover mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>Type</th>
+                    {% if not is_user_view %}<th>User</th>{% endif %}
+                    <th>Group/Request</th>
+                    <th>Reason</th>
+                    {% if not is_user_view %}<th>Rejected By</th>{% endif %}
+                    <th>Date</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for rejection in rejections %}
+                  <tr>
+                    <td>
+                      {% if rejection.type == 'group_creation' %}
+                        <span class="badge bg-primary">Group Creation Application</span>
+                      {% elif rejection.type == 'group_membership' %}
+                        <span class="badge bg-warning text-dark">Group Role Request</span>
+                      {% elif rejection.type == 'group_request' %}
+                        <span class="badge bg-info">Group Join Request</span>
+                      {% endif %}
+                    </td>
+                    {% if not is_user_view %}
+                    <td>
+                      <div>
+                        <div class="fw-bold">{{ rejection.user_name }}</div>
+                        <small class="text-muted">@{{ rejection.username }}</small>
+                      </div>
+                    </td>
+                    {% endif %}
+                    <td>
+                      <div>
+                        <div class="fw-bold">{{ rejection.group_name }}</div>
+                      </div>
+                    </td>
+                    <td>
+                      {% if rejection.reason %}
+                        <div class="text-wrap" style="max-width: 200px;">
+                          {{ rejection.reason }}
+                        </div>
+                      {% else %}
+                        <span class="text-muted">No reason provided</span>
+                      {% endif %}
+                    </td>
+                    {% if not is_user_view %}
+                    <td>
+                      {% if rejection.rejected_by %}
+                        <div>
+                          <div class="fw-bold">{{ rejection.rejected_by_name }}</div>
+                          <small class="text-muted">@{{ rejection.rejected_by_username }}</small>
+                        </div>
+                      {% else %}
+                        <span class="text-muted">-</span>
+                      {% endif %}
+                    </td>
+                    {% endif %}
+                    <td>
+                      <small class="text-muted">
+                        {{ rejection.rejected_at | nz_date }}<br>
+                        {{ rejection.rejected_at | nz_time12_upper }}
+                      </small>
+                    </td>
+                    <td>
+                      <div class="btn-group" role="group">
+                        {% if not is_user_view %}
+                        <a href="{{ url_for('admin_user_profile', user_id=rejection.user_id) }}" 
+                           class="btn btn-sm btn-outline-primary" title="View User Profile">
+                          <i class="bi bi-person"></i>
+                        </a>
+                        {% endif %}
+                        {% if rejection.type == 'group_creation' %}
+                          <a href="{{ url_for('group_edit', group_id=rejection.group_id) }}" 
+                             class="btn btn-sm btn-outline-secondary" title="View Group">
+                            <i class="bi bi-eye"></i>
+                          </a>
+                        {% endif %}
+                      </div>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <div class="text-center py-5">
+              <i class="bi bi-check-circle text-success fs-1 mb-3 d-block"></i>
+              <h5 class="text-muted">No Rejections Found</h5>
+              <p class="text-muted">
+                {% if current_filters %}
+                  No rejection records match your current filters.
+                {% else %}
+                  No rejection records found in the system.
+                {% endif %}
+              </p>
+              {% if is_user_view %}
+                <a href="{{ url_for('user_rejection_history') }}" class="btn btn-outline-activeloop btn-extra-compact" title="Refresh" aria-label="Refresh">Refresh</a>
+              {% else %}
+                {% if current_filters %}
+                  <a href="{{ url_for('support_rejection_history') }}" class="btn btn-outline-primary">
+                    <i class="bi bi-x-circle me-1"></i>Clear Filters
+                  </a>
+                {% endif %}
+              {% endif %}
+            </div>
+          {% endif %}
+        </div>
+        {% if pagination and pagination.pages > 1 %}
+        <div class="card-footer">
+          {% include 'components/pagination.html' %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

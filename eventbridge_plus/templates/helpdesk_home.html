@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% set active_page = 'helpdesk_home' %}
+
+{% block title %}Helpdesk{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="d-flex justify-content-center align-items-center" style="min-height: 60vh;">
+        <div class="text-center">
+          <i class="bi bi-headset text-primary" style="font-size: 4rem;"></i>
+          <h1 class="display-4 mt-3 text-primary">Helpdesk System</h1>
+          <p class="lead text-muted">Welcome to the ActiveLoop Plus Helpdesk System!</p>
+          <div class="mt-4">
+            <a href="{{ url_for('helpdesk_home') }}" class="btn btn-primary btn-lg">
+              <i class="bi bi-arrow-right me-2"></i>
+              Access Helpdesk
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

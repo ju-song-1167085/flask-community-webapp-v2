@@ -1,0 +1,406 @@
+{% extends 'base.html' %}
+{% block title %}Import Results (CSV){% endblock %}
+{% block content %}
+<div class="container py-4">
+  
+  <!-- Event Info Card -->
+  <div class="card mb-3" style="border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.1); background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);">
+    <div class="card-body py-3">
+      <div class="d-flex justify-content-between align-items-center">
+        <div class="text-dark">
+          <h2 class="h5 mb-1">
+            <i class="bi bi-clock-history me-2"></i>Import Race Results
+          </h2>
+          <p class="mb-0 text-muted">
+            <i class="bi bi-info-circle me-2"></i>Event #{{ event_id }}
+            {% if event_info %}
+            - {{ event_info.event_title }}
+            {% endif %}
+          </p>
+        </div>
+        {% if event_info %}
+        <span class="badge bg-secondary text-white px-3 py-2" style="font-size: 0.9rem;">
+          <i class="bi bi-calendar3 me-2"></i>{{ event_info.event_date | nz_date }}
+        </span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 1: Upload CSV File -->
+  <div class="card mb-4">
+    <div class="card-header bg-light">
+      <div class="d-flex justify-content-between align-items-center">
+        <h3 class="h6 mb-0">
+          <i class="bi bi-cloud-upload me-2"></i>Step 1: Upload CSV File
+        </h3>
+        <div class="d-inline-flex gap-2" role="group" aria-label="import-actions">
+          <a class="btn btn-warning btn-compact d-inline-flex align-items-center fw-bold" style="border-radius: var(--radius);" href="{{ url_for('results_template_for_event', event_id=event_id) }}">
+            <i class="bi bi-download me-1"></i>Download Template
+          </a>
+          {% if is_event_completed %}
+          <a class="btn btn-success btn-compact d-inline-flex align-items-center fw-bold" style="border-radius: var(--radius);" href="{{ url_for('view_event_results', event_id=event_id) }}">
+            <i class="bi bi-eye me-1"></i>View Results
+          </a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+        {% if not is_event_completed %}
+        <div class="alert alert-secondary d-flex align-items-center">
+          <i class="bi bi-exclamation-triangle-fill me-2"></i>
+          <div class="text-muted">
+            This event has not concluded yet. Uploads will be available after the event ends.
+          </div>
+        </div>
+        {% endif %}
+        {% if is_event_completed %}
+        {% if has_existing_results %}
+        <div class="alert alert-warning d-flex align-items-center">
+          <i class="bi bi-exclamation-triangle-fill me-2"></i>
+          <div>
+            <strong>Event Completed</strong> - This event already have results. If you overwrite, past results can not be saved.
+          </div>
+        </div>
+        {% else %}
+        <div class="alert alert-info d-flex align-items-center">
+          <i class="bi bi-info-circle me-2"></i>
+          <div>
+            <strong>Event Completed</strong> - This event has already concluded. Click "View Results" above to see all race results and download them as needed.
+          </div>
+        </div>
+        {% endif %}
+        {% endif %}
+      <form method="post" enctype="multipart/form-data" action="{{ url_for('results_import_post', event_id=event_id) }}" id="importForm">
+        
+        <!-- File Upload -->
+        <div class="mb-3">
+          <label class="form-label fw-bold">
+            <i class="bi bi-file-earmark-arrow-up me-2"></i>Choose File
+          </label>
+          <input class="form-control form-control-lg" type="file" name="csv_file" accept=".csv,.CSV,text/csv,application/vnd.ms-excel" required id="csvFileInput" {% if not is_event_completed %}disabled aria-disabled="true" title="Import is disabled for future events"{% endif %}>
+          <small class="text-muted d-block mt-2">
+            <i class="bi bi-info-circle me-1"></i>
+            Only CSV files are allowed. Supported formats: <code>.csv</code>, <code>.CSV</code>
+          </small>
+        </div>
+
+        <!-- CSV Preview (hidden until file is selected) -->
+        <div id="csvPreviewSection" class="mb-3" style="display: none;">
+          <div class="alert alert-info d-flex align-items-center">
+            <i class="bi bi-eye me-2 fs-5"></i>
+            <div>
+              <strong>CSV Preview Ready</strong> - Review your data below, then click "Validate & Import" to proceed.
+            </div>
+          </div>
+          <div class="card border-info">
+            <div class="card-header bg-info text-white">
+              <h6 class="mb-0">
+                <i class="bi bi-table me-2"></i>CSV Preview
+                <span class="badge bg-light text-dark ms-2" id="previewRowCount">0 rows</span>
+              </h6>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                <table class="table table-sm table-hover mb-0" id="previewTable">
+                  <thead class="table-light sticky-top">
+                    <tr id="previewHeader"></tr>
+                  </thead>
+                  <tbody id="previewBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Collapsible: How to fill the CSV -->
+        <div class="accordion mb-3" id="csvGuide">
+          <div class="accordion-item border">
+            <h2 class="accordion-header" id="guideHeading">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#guideContent" aria-expanded="false">
+                <i class="bi bi-question-circle me-2"></i>How to fill the CSV
+              </button>
+            </h2>
+            <div id="guideContent" class="accordion-collapse collapse" data-bs-parent="#csvGuide">
+              <div class="accordion-body">
+                <div class="row">
+                  <div class="col-md-6">
+                    <h6 class="fw-bold text-success mb-2">Required Headers:</h6>
+                    <ul class="mb-3">
+                      <li><code>id</code> (or <code>participation_id</code>)</li>
+                      <li><code>start_time</code></li>
+                      <li><code>end_time</code> (or <code>finish_time</code>)</li>
+                    </ul>
+                    
+                    <h6 class="fw-bold text-primary mb-2">Optional Headers:</h6>
+                    <ul>
+                      <li><code>username</code></li>
+                    </ul>
+                  </div>
+                  <div class="col-md-6">
+                    <h6 class="fw-bold text-info mb-2">Time Format:</h6>
+                    <ul>
+                      <li>24-hour format: <code>HH:MM:SS</code></li>
+                      <li>Example: <code>09:00:00</code> (not <code>9:0:0</code>)</li>
+                      <li>Full datetime: <code>YYYY-MM-DD HH:MM:SS</code></li>
+                    </ul>
+                    
+                    <h6 class="fw-bold text-warning mb-2">Rules:</h6>
+                    <ul>
+                      <li>One participant per row</li>
+                      <li>No duplicate IDs</li>
+                      <li>End time must be after start time</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+
+        <!-- Validation Mode Checkbox -->
+        <div class="form-check form-switch mb-3">
+          <input class="form-check-input" type="checkbox" name="validate_only" id="validate_mode" value="1" checked>
+          <label class="form-check-label fw-bold" for="validate_mode">
+            <i class="bi bi-shield-check me-2 text-success"></i>Validation Only Mode
+          </label>
+          <small class="text-muted d-block mt-1">
+            <i class="bi bi-lightbulb me-1"></i>Check your file for errors without importing data (recommended first)
+          </small>
+        </div>
+
+        <!-- Step 2: Choose Options -->
+        <div class="mb-4">
+          <label class="form-label fw-bold">
+            <i class="bi bi-gear me-2"></i>Step 2: Update Policy
+          </label>
+          
+          <!-- Update Policy -->
+          <div class="p-3 border rounded bg-light">
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="update_policy" id="pol_skip" value="skip"
+                     {% if update_policy!='overwrite' %}checked{% endif %}>
+              <label class="form-check-label" for="pol_skip">
+                <strong>Standard Import</strong> - Suitable for first-time upload; import new rows only and do not modify existing results
+              </label>
+            </div>
+            <div class="form-check mt-2">
+              <input class="form-check-input" type="radio" name="update_policy" id="pol_over" value="overwrite"
+                     {% if update_policy=='overwrite' %}checked{% endif %}>
+              <label class="form-check-label" for="pol_over">
+                <strong>Overwrite Existing</strong> - Suitable for updates; replace existing matches and add new rows
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="d-flex flex-wrap gap-2">
+          <button type="submit" class="btn btn-success btn-compact d-inline-flex align-items-center fw-bold" style="border-radius: var(--radius);" {% if not is_event_completed %}disabled aria-disabled="true" title="Import is disabled for future events"{% endif %}>
+            <i class="bi bi-shield-check me-2"></i>Validate & Import
+          </button>
+          <button type="button" class="btn btn-outline-activeloop btn-compact d-inline-flex align-items-center icon-bold" id="resetBtn" title="Reset" aria-label="Reset" style="border-radius: var(--radius);">
+            <i class="bi bi-arrow-counterclockwise"></i>
+          </button>
+          <button type="button" class="btn btn-compact d-inline-flex align-items-center icon-bold" onclick="window.history.back()" title="Back" aria-label="Back" style="background:#fff; color: var(--accent); border: 2px solid var(--accent); border-radius: var(--radius);">
+            <i class="bi bi-arrow-left"></i>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- Import Summary (after processing) -->
+  {% if summary %}
+  <div class="card" id="importSummary" style="border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+    <div class="card-header bg-light text-dark">
+        <div class="d-flex justify-content-between align-items-center">
+          <h3 class="h6 mb-0">
+            <i class="bi bi-check-circle me-2 text-success"></i>Import Summary
+          </h3>
+          {% if summary.success_count > 0 %}
+          <a href="{{ url_for('export_import_results', event_id=event_id) }}" class="btn btn-sm btn-light">
+            <i class="bi bi-download me-1"></i>Download Results
+          </a>
+          {% endif %}
+        </div>
+    </div>
+    <div class="card-body">
+      
+      <!-- Quick Summary -->
+      <div class="row mb-4">
+        <div class="col-md-4">
+          <div class="text-center p-3 border rounded">
+            <i class="bi bi-list-ul" style="font-size: 2rem; color: #0d6efd;"></i>
+            <h4 class="mt-2 mb-0">{{ summary.total }}</h4>
+            <small class="text-muted">Total Rows</small>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="text-center p-3 border rounded bg-light">
+            <i class="bi bi-check-circle" style="font-size: 2rem; color: #198754;"></i>
+            <h4 class="mt-2 mb-0 text-success">{{ summary.success_count }}</h4>
+            <small class="text-muted">Successful</small>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="text-center p-3 border rounded bg-light">
+            <i class="bi bi-x-circle" style="font-size: 2rem; color: #dc3545;"></i>
+            <h4 class="mt-2 mb-0 text-danger">{{ summary.fail_count }}</h4>
+            <small class="text-muted">Failed</small>
+          </div>
+        </div>
+      </div>
+
+      {% if report_rows %}
+      <!-- Detailed Report -->
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead class="table-light">
+            <tr>
+              <th style="width: 8%;">Line #</th>
+              <th style="width: 15%;">Participation ID</th>
+              <th style="width: 12%;">Status</th>
+              <th style="width: 65%;">Message</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in report_rows %}
+            <tr class="{% if r.status=='failed' %}table-danger{% elif r.status in ['inserted','updated','would_insert','would_update'] %}table-success{% elif r.status in ['skipped','would_skip'] %}table-warning{% endif %}">
+              <td><strong>{{ r.line }}</strong></td>
+              <td><code>{{ r.participation_id }}</code></td>
+              <td>
+                {% if r.status == 'failed' %}
+                  <span class="badge bg-danger">Failed</span>
+                {% elif r.status in ['inserted', 'would_insert'] %}
+                  <span class="badge bg-success">{% if validate_only %}Would Insert{% else %}Inserted{% endif %}</span>
+                {% elif r.status in ['updated', 'would_update'] %}
+                  <span class="badge bg-primary">{% if validate_only %}Would Update{% else %}Updated{% endif %}</span>
+                {% elif r.status in ['skipped', 'would_skip'] %}
+                  <span class="badge bg-warning text-dark">{% if validate_only %}Would Skip{% else %}Skipped{% endif %}</span>
+                {% else %}
+                  <span class="badge bg-secondary">{{ r.status }}</span>
+                {% endif %}
+              </td>
+              <td>{{ r.message }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="alert alert-info mt-3 mb-0">
+        <small>
+          <i class="bi bi-info-circle me-1"></i>
+          <strong>Status meanings:</strong>
+          <span class="badge bg-danger me-1">Failed</span> = Error occurred
+          <span class="badge bg-success me-1">Inserted/Updated</span> = Successfully imported
+          <span class="badge bg-warning me-1">Skipped</span> = Skipped per policy
+          {% if validate_only %}
+          <br><span class="badge bg-info me-1">Note</span> = Running in <strong>Validation Only</strong> mode - no data was imported
+          {% endif %}
+        </small>
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+// CSV preview when file is selected
+document.getElementById('csvFileInput').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) {
+        document.getElementById('csvPreviewSection').style.display = 'none';
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const text = e.target.result;
+            const lines = text.split('\n').filter(line => line.trim());
+            
+            if (lines.length === 0) {
+                alert('File appears to be empty');
+                return;
+            }
+
+            const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+            const rows = [];
+            
+            for (let i = 1; i < Math.min(lines.length, 11); i++) {
+                const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
+                const row = {};
+                headers.forEach((header, idx) => {
+                    row[header] = values[idx] || '';
+                });
+                rows.push(row);
+            }
+
+            displayPreview(headers, rows, Math.min(lines.length - 1, 10));
+        } catch (error) {
+            console.error('Error parsing CSV:', error);
+            alert('Error parsing CSV file: ' + error.message);
+        }
+    };
+    reader.readAsText(file);
+});
+
+function displayPreview(headers, rows, displayCount) {
+    document.getElementById('csvPreviewSection').style.display = 'block';
+    document.getElementById('previewRowCount').textContent = displayCount + (displayCount >= 10 ? ' rows (showing first 10)' : ' rows');
+    
+    const headerRow = document.getElementById('previewHeader');
+    headerRow.innerHTML = '';
+    headers.forEach(header => {
+        const th = document.createElement('th');
+        th.textContent = header;
+        th.style.fontSize = '0.875rem';
+        headerRow.appendChild(th);
+    });
+    
+    const body = document.getElementById('previewBody');
+    body.innerHTML = '';
+    rows.forEach(row => {
+        const tr = document.createElement('tr');
+        headers.forEach(header => {
+            const td = document.createElement('td');
+            td.textContent = row[header] || '';
+            td.style.fontSize = '0.875rem';
+            tr.appendChild(td);
+        });
+        body.appendChild(tr);
+    });
+}
+
+// Reset button clears everything
+document.getElementById('resetBtn').addEventListener('click', function() {
+    document.getElementById('importForm').reset();
+    document.getElementById('csvPreviewSection').style.display = 'none';
+    document.getElementById('previewHeader').innerHTML = '';
+    document.getElementById('previewBody').innerHTML = '';
+    document.getElementById('previewRowCount').textContent = '0 rows';
+    
+    document.getElementById('validate_mode').checked = true;
+    document.getElementById('pol_skip').checked = true;
+    document.getElementById('pol_over').checked = false;
+    
+    const importSummary = document.getElementById('importSummary');
+    if (importSummary) {
+        importSummary.style.display = 'none';
+    }
+    
+    const formCard = document.querySelector('.card');
+    if (formCard) {
+        formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+});
+</script>
+
+{% endblock %}

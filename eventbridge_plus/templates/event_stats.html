@@ -1,0 +1,145 @@
+{% extends 'base.html' %} 
+{% block title %}Event Statistics — {{ ev.event_title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <!-- Header -->
+  <div class="d-flex align-items-center mb-3">
+    <h3 class="me-auto">
+      {{ ev.event_title }} — Statistics
+      <small class="text-muted fs-6">
+        ({{ ev.event_date|nz_date if ev.event_date else '-' }} {{ ev.event_time|nz_time12_upper if ev.event_time else '-' }} · {{ ev.location }})
+      </small>
+    </h3>
+    <a class="btn btn-outline-secondary" href="{{ url_for('manage_events') }}">Back</a>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="row g-3">
+    <div class="col-md-3">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <div class="text-muted">Registered</div>
+          <div class="fs-3 fw-bold">{{ total_registered }}</div>
+          <div class="small text-secondary">All sign-ups (for reference)</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <div class="text-muted">Valid Results</div>
+          <div class="fs-3 fw-bold">{{ total_valid }}</div>
+          <div class="small text-secondary">Only valid finish times counted</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <div class="text-muted">Average Time</div>
+          <div class="fs-3 fw-bold">{{ avg_hms }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <div class="text-muted">Fastest / Slowest</div>
+          <div class="fw-bold">
+            {{ min_hms }}
+            <span class="text-secondary small">({{ fastest_name }})</span>
+          </div>
+          <div class="fw-bold">
+            {{ max_hms }}
+            <span class="text-secondary small">({{ slowest_name }})</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% if total_valid == 0 %}
+    <div class="alert alert-info mt-4">
+      No valid recorded results yet. Only results with valid start/finish times are included.
+    </div>
+  {% endif %}
+
+  <!-- Ranked list (Fastest → Slowest) -->
+  {% if ranked_results and ranked_results|length > 0 %}
+    <div class="card shadow-sm mt-4">
+      <div class="card-body">
+        <div class="d-flex align-items-center mb-2">
+          <h5 class="mb-0">Ranked Results <span class="text-muted">(Fastest → Slowest)</span></h5>
+          <span class="ms-2 badge bg-light text-dark border">Total: {{ ranked_results|length }}</span>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table table-sm align-middle">
+            <thead class="table-light">
+              <tr>
+                <th scope="col" style="width: 70px;">Rank</th>
+                <th scope="col">Participant</th>
+                <th scope="col" style="width: 180px;">Start Time</th>   <!-- NEW -->
+                <th scope="col" style="width: 180px;">Finish Time</th>
+                <th scope="col" style="width: 140px;">Elapsed</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in ranked_results %}
+                <tr>
+                  <td class="fw-bold">{{ loop.index }}</td>  {# use loop.index instead of r.rank #}
+                  <td>{{ r.full_name }}</td>
+
+                  <!-- Start Time -->
+                  <td>
+                    {% if r.start_hms %}
+                      {{ r.start_hms }}
+                    {% elif r.start_time and r.start_time.strftime is defined %}
+                      {{ r.start_time|nz_date }} {{ r.start_time|nz_time12_upper }}
+                    {% else %}
+                      {{ r.start_time or '-' }}
+                    {% endif %}
+                  </td>
+
+                  <!-- Finish Time -->
+                  <td>
+                    {% if r.finish_hms %}
+                      {{ r.finish_hms }}
+                    {% elif r.finish_time and r.finish_time.strftime is defined %}
+                      {{ r.finish_time|nz_date }} {{ r.finish_time|nz_time12_upper }}
+                    {% else %}
+                      {{ r.finish_time or '-' }}
+                    {% endif %}
+                  </td>
+
+                  <!-- Elapsed -->
+                  <td>
+                    {% if r.elapsed_hms %}
+                      {{ r.elapsed_hms }}
+                    {% elif r.elapsed_time %}
+                      {{ r.elapsed_time }}
+                    {% elif r.elapsed_sec is not none %}
+                      {% set _total = r.elapsed_sec|int %}
+                      {% set _h = _total // 3600 %}
+                      {% set _m = (_total % 3600) // 60 %}
+                      {% set _s = _total % 60 %}
+                      {{ "%02d:%02d:%02d" % (_h, _m, _s) }}
+                    {% else %}
+                      -
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

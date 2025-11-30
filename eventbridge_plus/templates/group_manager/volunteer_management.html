@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+{% block title %}Volunteer Review - {{ event.event_title }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div>
+                <h4 class="mb-1">Volunteer Management</h4>
+                <p class="text-muted mb-0">{{ event.event_title }} - {{ event.event_date|nz_date }}</p>
+            </div>
+            <a href="{{ url_for('manage_events') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back
+            </a>
+        </div>
+    </div>
+
+    <!-- New: Assign volunteer by username -->
+    <div class="card mb-4">
+    <div class="card-body">
+        <h5 class="card-title mb-3">Assign a Volunteer</h5>
+        <form method="POST" action="{{ url_for('assign_volunteer', event_id=event_id) }}" class="row g-3 align-items-end">
+        <div class="col-md-6">
+            <label class="form-label">Member</label>
+            <select name="user_id" class="form-select" required>
+            <option value="">-- Select a member --</option>
+            {% for m in group_members %}
+                <option value="{{ m.user_id }}">{{ m.username }} — {{ m.first_name }} {{ m.last_name }}</option>
+            {% endfor %}
+            </select>
+        </div>
+
+        <div class="col-md-4">
+            <label class="form-label">Role</label>
+            <select name="responsibility" class="form-select">
+                <option value="">Select responsibility...</option>
+                <option value="event_setup">Event Setup</option>
+                <option value="safety_medical">Safety/Medical</option>
+                <option value="participant_support">Participant Support</option>
+                <option value="community_outreach">Community Outreach</option>
+                <option value="photography">Photography</option>
+            </select>
+        </div>
+
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-primary w-100">
+            <i class="bi bi-person-plus"></i> Assign
+            </button>
+        </div>
+        </form>
+    </div>
+    </div>
+
+
+    <!-- /Assign form -->
+
+    {% if pending_volunteers %}
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Pending Applications ({{ pending_volunteers|length }})</h5>
+        </div>
+        <div class="card-body">
+            <div class="list-group">
+                {% for volunteer in pending_volunteers %}
+                <div class="list-group-item">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center">
+                            {% if volunteer.user_image %}
+                            <img src="{{ url_for('static', filename=volunteer.user_image) }}" 
+                                 class="rounded-circle me-3" width="48" height="48" alt="Avatar">
+                            {% else %}
+                            <div class="bg-secondary rounded-circle me-3 d-flex align-items-center justify-content-center" 
+                                 style="width: 48px; height: 48px;">
+                                <i class="bi bi-person text-white"></i>
+                            </div>
+                            {% endif %}
+                            <div>
+                                <h6 class="mb-0">{{ volunteer.first_name }} {{ volunteer.last_name }}</h6>
+                                <small class="text-muted">@{{ volunteer.username }}</small>
+                                <br>
+                                <small class="text-muted">Applied: {{ volunteer.registration_date|nz_date }} {{ volunteer.registration_date|nz_time12_upper }}</small>
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <form method="POST" action="{{ url_for('approve_volunteer', event_id=event_id, membership_id=volunteer.membership_id) }}" style="display:inline;">
+                                <button type="submit" class="btn btn-success" style="min-width: 120px;">
+                                    <i class="bi bi-check-circle"></i> Approve
+                                </button>
+                            </form>
+                            <button type="button" class="btn btn-danger" style="min-width: 120px;"
+                                    onclick="rejectVolunteer({{ volunteer.membership_id }}, '{{ volunteer.first_name }} {{ volunteer.last_name }}')">
+                                <i class="bi bi-x-circle"></i> Reject
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i> No pending volunteer applications at this time.
+    </div>
+    {% endif %}
+</div>
+
+<!-- Reject Reason Modal -->
+<div class="modal fade" id="rejectModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" id="rejectForm">
+                <div class="modal-header">
+                    <h5 class="modal-title">Reject Volunteer Application</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to reject <strong id="volunteerName"></strong>'s application?</p>
+                    <div class="mb-3">
+                        <label class="form-label">Reason</label>
+                        <select name="reason" class="form-select" required>
+                            <option value="">Select a reason…</option>
+                            <option value="Role filled">Role filled</option>
+                            <option value="Insufficient experience">Insufficient experience</option>
+                            <option value="Other">Other</option>
+                        </select>
+                        <div class="form-text">This reason will be included in the notification to the applicant.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Confirm Rejection</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function rejectVolunteer(membershipId, volunteerName) {
+    document.getElementById('volunteerName').textContent = volunteerName;
+    document.getElementById('rejectForm').action = 
+        `/events/{{ event_id }}/volunteers/${membershipId}/reject`;
+    new bootstrap.Modal(document.getElementById('rejectModal')).show();
+}
+</script>
+{% endblock %}

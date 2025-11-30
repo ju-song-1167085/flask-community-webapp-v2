@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+{% block title %}My Result · {{ (data.event.title if data.event is defined else data.event_title) or 'Event' }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <h2 class="mb-3">
+    <i class="bi bi-flag"></i>
+    {{ (data.event.title if data.event is defined else data.event_title) or 'Event Result' }}
+  </h2>
+
+  {# --- Unified display switch ---
+     Prioritize the use of can_show_result ("completed and has results") provided by the backend
+     Otherwise it degenerates to: display as long as there is finish_time/finished_at #}
+  {% set _finish_time =
+        (data.result.finish_time if data.result is defined else data.finished_at) %}
+  {% set _elapsed_str =
+        (data.result.elapsed_str if data.result is defined else data.elapsed_str) %}
+  {% set _can_show =
+        (data.can_show_result if data.can_show_result is defined else (_finish_time is not none)) %}
+
+  {% if _can_show %}
+    <div class="row gy-3">
+      <div class="col-12 col-md-6">
+        <div class="card shadow-sm">
+          <div class="card-body">
+            <h5 class="card-title mb-3">Your Performance</h5>
+
+            <p class="mb-1">
+              <strong>Date:</strong>
+              {% if _finish_time %}
+                {% if _finish_time.strftime is defined %}
+                  {{ _finish_time|nz_date }}
+                {% else %}
+                  {{ _finish_time }}
+                {% endif %}
+              {% else %}-{% endif %}
+            </p>
+
+            <p class="mb-1">
+              <strong>Start time:</strong>
+              {{ data.result.start_time.strftime('%H:%M:%S') if data.result.start_time else '-' }}
+            </p>
+
+            <p class="mb-1">
+              <strong>Finish time:</strong>
+              {% if _finish_time %}
+                {% if _finish_time.strftime is defined %}
+                  {{ _finish_time|nz_time24 }}
+                {% else %}
+                  {{ _finish_time }}
+                {% endif %}
+              {% else %}-{% endif %}
+            </p>
+
+            <p class="mb-0">
+              <strong>Elapsed:</strong> {{ _elapsed_str or '-' }}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-md-6">
+        <div class="card shadow-sm">
+          <div class="card-body">
+            <h5 class="card-title mb-3">Ranking</h5>
+            <p class="mb-1">
+              <strong>Overall:</strong>
+              {% if data.rank_overall %}{{ data.rank_overall }} / {{ data.total_finishers }}{% else %}-{% endif %}
+            </p>
+            <p class="mb-0">
+              <strong>Group:</strong>
+              {% if data.rank_in_group and data.total_in_group and (data.group_name or (data.event and data.event.group_name)) %}
+                {{ data.rank_in_group }} / {{ data.total_in_group }}
+                in {{ data.group_name or (data.event and data.event.group_name) }}
+              {% else %}-{% endif %}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% else %}
+    <div class="alert alert-secondary d-flex align-items-center mt-3" role="alert">
+      <i class="bi bi-hourglass-split me-2"></i>
+      <div>Results pending / not yet published.</div>
+    </div>
+  {% endif %}
+
+  <div class="mt-4">
+    <button type="button" class="btn btn-outline-primary" onclick="window.history.back()">
+      ← Back
+    </button>
+  </div>
+</div>
+{% endblock %}

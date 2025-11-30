@@ -1,0 +1,55 @@
+{# components/_event_card.html #}
+<div class="card h-100 shadow-sm">
+    <div class="card-body d-flex flex-column">
+        <!-- Title + type -->
+        <div class="d-flex justify-content-between align-items-start mb-1">
+            <h5 class="card-title text-brand mb-0 text-truncate">{{ e.event_title }}</h5>
+            <span class="badge bg-light text-dark">{{ e.event_type }}</span>
+        </div>
+
+        <!-- Group name + public/private -->
+        <div class="subtle mb-1">
+            <i class="bi bi-people"></i>
+            {{ e.group_name }}
+            {% if e.is_public %}
+                <span class="badge bg-success ms-2"><i class="bi bi-unlock"></i> Public</span>
+            {% else %}
+                <span class="badge bg-secondary ms-2"><i class="bi bi-lock"></i> Private</span>
+            {% endif %}
+        </div>
+
+        <!-- Date & time -->
+        <div class="subtle mb-1">
+            <i class="bi bi-calendar-event"></i>
+            <span class="date">{{ e.event_date|nz_date }}</span>
+            <span class="time">{{ e.event_time|nz_time12_upper }}</span>
+        </div>
+
+        <!-- Location -->
+        <div class="subtle mb-3">
+            <i class="bi bi-geo-alt"></i>
+            {{ e.location or '—' }}
+        </div>
+
+        <!-- Bottom stats and action -->
+        <div class="mt-auto d-flex justify-content-between align-items-center">
+            <div class="d-flex gap-2 align-items-center">
+                <span class="badge-ok">Capacity: {{ e.max_participants }}</span>
+                {# registered_count is optional; show if available #}
+                {% if e.registered_count is defined %}
+                <span class="badge bg-light text-dark">Registered: {{ e.registered_count }}</span>
+                {% endif %}
+            </div>
+
+            {# popularity optional (when you sort by popularity) #}
+            {% if sort == 'popularity' and e.popularity is defined %}
+                <div class="mb-1">
+                    <span class="badge bg-warning text-dark">Group Pop: {{ e.popularity }}</span>
+                </div>
+            {% endif %}
+            
+            <a class="btn btn-outline-activeloop btn-sm btn-compact ms-2"  href="{{ url_for('event_detail', event_id=e.event_id) }}">Details</a>
+
+        </div>
+    </div>
+</div>

@@ -1,0 +1,597 @@
+{# templates/base.html - Unified Base Template #}
+<!DOCTYPE html>
+<html lang="en-NZ">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="Content-Language" content="en-NZ" />
+    <title>{% block title %}{% endblock %} - EventBridge+</title>
+
+    <!-- Vendor CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Urbanist:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+
+    <!-- Custom CSS -->
+    <link href="{{ url_for('static', filename='css/base.css') }}?v=1" rel="stylesheet" />
+    <link href="{{ url_for('static', filename='css/navbar.css') }}?v=1" rel="stylesheet" />
+    <link href="{{ url_for('static', filename='css/footer.css') }}?v=1" rel="stylesheet" />
+    
+    <!-- Title link hover effect -->
+    <style>
+      .title-link {
+        text-decoration: none !important;
+        transition: text-decoration 0.2s ease;
+      }
+      .title-link:hover {
+        text-decoration: underline !important;
+      }
+      /* Show nav dropdowns on hover (desktop) */
+      @media (min-width: 992px) {
+        .navbar .dropdown:hover > .dropdown-menu { display: block; }
+        .navbar .dropdown-toggle.show + .dropdown-menu { display: block; }
+        /* Ensure dropdown opens right under its toggle, aligned to the right edge */
+        .navbar .dropdown .dropdown-menu { left: auto; right: 0; top: 100%; margin-top: .25rem; }
+      }
+      /* Show nav dropdowns on hover (desktop) */
+      @media (min-width: 992px) {
+        /* Default hidden, absolute under toggle, right-aligned */
+        .navbar .dropdown .dropdown-menu {
+          display: none;
+          position: absolute;
+          left: auto;
+          right: 0;
+          top: 100%;
+          margin-top: .25rem;
+          z-index: 1100;
+        }
+        /* Show on hover and when bootstrap toggles show class */
+        .navbar .dropdown:hover > .dropdown-menu,
+        .navbar .dropdown .dropdown-menu.show,
+        .navbar .dropdown-toggle.show + .dropdown-menu { display: block; }
+      }
+    </style>
+
+    {% block head_extra %}{% endblock %}
+  </head>
+
+  <body class="d-flex flex-column min-vh-100">
+    <!-- Top Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark mb-0" style="overflow: visible;">
+      <div class="container-fluid" style="overflow: visible;">
+        <!-- Brand -->
+        <a href="{{ url_for('main_home') }}" class="navbar-brand d-flex align-items-center me-auto">
+          <div class="d-flex align-items-center gap-1 text-truncate" style="min-width: 0">
+            <i class="bi bi-link-45deg ride"></i>
+            <i class="bi bi-stars sparkle" aria-hidden="true"></i>
+            <span class="brand-text chewy d-inline text-white"
+                  style="font-size: clamp(1rem, 3vw, 1.8rem); white-space: nowrap;">
+              EventBridge+
+            </span>
+          </div>
+        </a>
+
+        <!-- Navbar toggler -->
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#topnav"
+                aria-controls="topnav" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <!-- Navbar Content -->
+        <div class="collapse navbar-collapse" id="topnav">
+          <ul class="navbar-nav ms-auto align-items-center">
+            <!-- Home -->
+            <li class="nav-item">
+              <a class="nav-link{{ ' active' if active_page=='home' else '' }}"
+                href="{{ url_for('main_home') }}"
+                {% if active_page=='home' %}aria-current="page"{% endif %}>Home</a>
+            </li>
+
+            <!-- Events (Always visible, with dropdown for Managers and Admins) -->
+            <li class="nav-item{% if session.get('group_role') == 'manager' or session.get('platform_role') in ['super_admin', 'support_technician'] %} dropdown{% endif %}">
+              {% if session.get('group_role') == 'manager' or session.get('platform_role') in ['super_admin', 'support_technician'] %}
+              <a class="nav-link dropdown-toggle{{ ' active' if active_page in ['search_explore', 'manage_events'] else '' }}"
+                 href="#" role="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">
+                Events
+              </a>
+              <ul class="dropdown-menu dropdown-menu-end" data-bs-boundary="viewport" data-bs-offset="0,8">
+                <li>
+                  <a class="dropdown-item"
+                     href="{{ url_for('explore') }}">
+                    Browse Events
+                  </a>
+                </li>
+                <li class="dropdown-submenu">
+                  <a class="dropdown-item" href="{{ url_for('manage_events') }}">
+                    Manage Events
+                    <i class="bi bi-chevron-right float-end"></i>
+                  </a>
+                  <ul class="dropdown-menu">
+                    <li>
+                      <a class="dropdown-item"
+                         href="{{ url_for('create_event') }}">
+                        <i class="bi bi-plus-circle me-2"></i>Create Event
+                      </a>
+                    </li>
+                  </ul>
+                </li>
+              </ul>
+              {% else %}
+              <a class="nav-link{{ ' active' if active_page=='search_explore' else '' }}"
+                href="{{ url_for('explore') }}"
+                {% if active_page=='search_explore' %}aria-current="page"{% endif %}>Events</a>
+              {% endif %}
+            </li>
+
+            <!-- Groups Dropdown (All logged in users) -->
+            {% if session.get('loggedin') %}
+            <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle{{ ' active' if active_page in ['groups_index', 'membership_management'] else '' }}"
+                 href="#" role="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false">
+Groups
+              </a>
+              <ul class="dropdown-menu dropdown-menu-end" data-bs-boundary="viewport" data-bs-offset="0,8">
+                {% set _platform_role = session.get('platform_role') %}
+                {% set _group_role = session.get('group_role') %}
+                
+                <!-- Group Membership (for managers and admins) -->
+                {% if _platform_role in ['super_admin', 'support_technician'] or _group_role == 'manager' %}
+                <li>
+                  <a class="dropdown-item" href="{{ url_for('membership_management') }}">
+Group Membership
+                  </a>
+                </li>
+                {% endif %}
+                
+                {% if session.get('user_id') and _platform_role == 'participant' %}
+                <li class="dropdown-submenu">
+                  <a class="dropdown-item" href="{{ url_for('my_applications_page') }}">
+                    Group Applications
+                    <i class="bi bi-chevron-right float-end"></i>
+                  </a>
+                  <ul class="dropdown-menu">
+                    <li>
+                      <a class="dropdown-item" href="{{ url_for('group_apply_for_participant') }}">
+                        <i class="bi bi-plus-circle me-2"></i>Create Group
+                      </a>
+                    </li>
+                  </ul>
+                </li>
+                {% endif %}
+                
+                
+                <!-- Group Managing (for super_admin and support_technician only) -->
+                {% if _platform_role in ['super_admin', 'support_technician'] %}
+                <li class="dropdown-submenu">
+                  <a class="dropdown-item" href="{{ url_for('groups_index') }}">
+                    Group Managing
+                    <i class="bi bi-chevron-right float-end"></i>
+                  </a>
+                  <ul class="dropdown-menu">
+                    {% if _platform_role == 'super_admin' %}
+                    <li>
+                      <a class="dropdown-item" href="{{ url_for('group_create') }}">
+                        <i class="bi bi-plus-circle me-2"></i>Create Group
+                      </a>
+                    </li>
+                    {% elif _platform_role == 'support_technician' %}
+                    <li>
+                      <a class="dropdown-item" href="{{ url_for('group_apply_for_participant') }}">
+                        <i class="bi bi-plus-circle me-2"></i>Create Group
+                      </a>
+                    </li>
+                    {% endif %}
+                  </ul>
+                </li>
+                {% endif %}
+              </ul>
+            </li>
+            {% endif %}
+
+
+            <!-- Session-based user menu -->
+            {% if session.get('loggedin') %}
+              <!-- FAQ for logged in users -->
+              <li class="nav-item ms-lg-2">
+                <a class="nav-link{{ ' active' if active_page=='faq' else '' }}"
+                  href="{{ url_for('faq') }}"
+                  {% if active_page=='faq' %}aria-current="page"{% endif %}>FAQ</a>
+              </li>
+              
+              <li class="nav-item ms-lg-2">
+                <div class="nav-divider"></div>
+              </li>
+              
+              <li class="nav-item dropdown ms-lg-2">
+              <a class="nav-link dropdown-toggle text-white" href="#" role="button"
+                   data-bs-toggle="dropdown" aria-expanded="false"
+                   data-bs-popper-config='{"strategy":"fixed"}'>
+<i class="bi bi-person-circle me-1"></i>{{ session.get('username') }}
+                        <!-- Notification badge on username (optional) -->
+                  <span id="nav-notification-badge" 
+                        class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" 
+                        style="display: none; font-size: 10px;">
+                  </span>
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end" data-bs-boundary="viewport" data-bs-offset="0,8">
+                  {% set _platform_role = session.get('platform_role') %}
+                  {% set _group_role = session.get('group_role') %}
+
+                  
+
+                  {% if _platform_role == 'super_admin' %}
+                    <li><a class="dropdown-item" href="{{ url_for('admin_dashboard') }}" tabindex="-1">
+                      Admin Dashboard</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('participant_dashboard') }}" tabindex="-1">
+                      My Dashboard</a></li>
+                  {% elif _platform_role == 'support_technician' %}
+                    <li><a class="dropdown-item" href="{{ url_for('support_dashboard') }}" tabindex="-1">
+                      Support Dashboard</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('participant_dashboard') }}" tabindex="-1">
+                      My Dashboard</a></li>
+                  {% elif _platform_role == 'participant' %}
+                    {% if _group_role == 'manager' %}
+                      <li><a class="dropdown-item" href="{{ url_for('group_manager_dashboard') }}" tabindex="-1">
+                      Manager Dashboard</a></li>
+                    {% elif _group_role == 'volunteer' %}
+                      <li><a class="dropdown-item" href="{{ url_for('participant_dashboard') }}" tabindex="-1">
+                      My Dashboard</a></li>
+                    {% else %}
+                      <li><a class="dropdown-item" href="{{ url_for('participant_dashboard') }}" tabindex="-1">
+                      My Dashboard</a></li>
+                    {% endif %}
+                    <li><a class="dropdown-item" href="{{ url_for('helpdesk_home') }}" tabindex="-1">
+Helpdesk</a></li>
+                  {% endif %}
+                  
+                  <li>
+                    <a class="dropdown-item" href="{{ url_for('profile_view', user_id=session.get('user_id')) }}" tabindex="-1">
+Profile
+                    </a>
+                  </li>
+                  
+                  <!-- Helpdesk - Only for admin and support technician -->
+                  {% if _platform_role in ['super_admin', 'support_technician'] %}
+                  <li>
+                    <a class="dropdown-item" href="{{ url_for('helpdesk_home') }}" tabindex="-1">
+Helpdesk
+                    </a>
+                  </li>
+                  {% endif %}
+                  <li><hr class="dropdown-divider" /></li>
+                  
+                  <!--  ========================================
+                                NOTIFICATIONS (All Roles)
+                                ======================================== -->
+                  <li>
+                    <a class="dropdown-item position-relative" href="{{ url_for('notifications_page') }}" tabindex="-1">
+Notifications
+                      <span id="dropdown-notification-badge" 
+                            class="position-absolute end-0 me-3 badge rounded-pill bg-danger" 
+                            style="display: none; font-size: 10px;">
+                      </span>
+                    </a>
+                  </li>
+                  
+                  <li>
+                    <a class="dropdown-item" href="{{ url_for('logout') }}" tabindex="-1">
+Logout
+                    </a>
+                  </li>
+                </ul>
+              </li>
+            {% else %}
+              <!-- Not logged in -->
+              <li class="nav-item ms-lg-2">
+                <a class="nav-link{{ ' active' if active_page=='faq' else '' }}"
+                  href="{{ url_for('faq') }}"
+                  {% if active_page=='faq' %}aria-current="page"{% endif %}>FAQ</a>
+              </li>
+              <li class="nav-item ms-lg-2">
+                <div class="nav-divider"></div>
+              </li>
+              <li class="nav-item ms-lg-2">
+                <a class="nav-link{{ ' active' if active_page=='login' else '' }}" href="{{ url_for('login') }}">Login</a>
+              </li>
+              <li class="nav-item ms-2">
+                <a class="nav-link{{ ' active' if active_page=='signup' else '' }}" href="{{ url_for('signup') }}">Register</a>
+              </li>
+            {% endif %}
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Flash messages -->
+    <div class="container mt-3">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+    </div>
+
+    <!-- Modal System -->
+    <div class="modal fade" id="flashModal" tabindex="-1" aria-labelledby="flashModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="flashModalLabel">Notification</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body" id="flashModalBody">
+            <!-- Message content will be inserted here -->
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main content -->
+    <main class="flex-fill container py-4">
+      {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer-brand-green py-3 mt-auto">
+      <div class="container text-center">
+        <p class="text-muted mb-0">
+          <i class="bi bi-stars sparkle" style="color: gold"></i>
+          <span class="brand-text chewy text-white">EventBridge+</span>
+          <small class="text-white ms-1">· Community Event Platform</small>
+          <i class="bi bi-stars sparkle" style="color: gold"></i>
+        </p>
+      </div>
+    </footer>
+
+    
+
+    <!-- Vendor JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    // Modal Manager
+    window.ModalManager = {
+        show: function(type, title, message) {
+            const modal = document.getElementById('flashModal');
+            const modalTitle = document.getElementById('flashModalLabel');
+            const modalBody = document.getElementById('flashModalBody');
+            
+            modalTitle.textContent = title || 'Notification';
+            modalBody.textContent = message;
+            
+            const modalHeader = modal.querySelector('.modal-header');
+            modalHeader.className = 'modal-header';
+            if (type === 'error' || type === 'danger') {
+                modalHeader.classList.add('bg-danger', 'text-white');
+            } else if (type === 'success') {
+                modalHeader.classList.add('bg-success', 'text-white');
+            } else if (type === 'info') {
+                modalHeader.classList.add('bg-info', 'text-white');
+            }
+            
+            const bsModal = new bootstrap.Modal(modal);
+            bsModal.show();
+        }
+    };
+
+    // Convert flash messages to modals (only from flash message container)
+    document.addEventListener('DOMContentLoaded', function() {
+        const flashContainer = document.querySelector('.container.mt-3');
+        if (flashContainer) {
+            const alerts = flashContainer.querySelectorAll('.alert');
+            alerts.forEach(function(alert) {
+                const message = alert.textContent.trim();
+                const category = alert.classList.contains('alert-danger') ? 'danger' : 
+                               alert.classList.contains('alert-success') ? 'success' : 
+                               alert.classList.contains('alert-info') ? 'info' : 'primary';
+                
+                // Hide original alert and show modal
+                alert.style.display = 'none';
+                ModalManager.show(category, 'Notification', message);
+            });
+        }
+    });
+
+    // Update notification badge (only for logged-in users)
+    function updateNotificationBadge() {
+        // Check if user is logged in (check if badge elements exist)
+        const navBadge = document.getElementById('nav-notification-badge');
+        const dropdownBadge = document.getElementById('dropdown-notification-badge');
+        
+        // If badges don't exist, user is not logged in - don't fetch
+        if (!navBadge && !dropdownBadge) {
+            return;
+        }
+        
+        // Additional check: if we're on login page, don't fetch
+        if (window.location.pathname === '/login' || window.location.pathname === '/signup') {
+            return;
+        }
+        
+        // Add timeout to prevent hanging requests
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+        
+        fetch('/noti/unread-count', {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            signal: controller.signal
+        })
+            .then(response => {
+                clearTimeout(timeoutId); // Clear timeout on successful response
+                
+                // Check if response is HTML (redirect to login page)
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('text/html')) {
+                    // User is not logged in, don't update badge
+                    console.log('User not logged in, skipping notification badge update');
+                    return null;
+                }
+                
+                // Check if response is successful
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                return response.json();
+            })
+            .then(data => {
+                if (data && typeof data === 'object' && 'count' in data) {
+                    if (data.count > 0) {
+                        // Show badges with count
+                        if (navBadge) {
+                            navBadge.textContent = data.count;
+                            navBadge.style.display = 'inline-block';
+                        }
+                        if (dropdownBadge) {
+                            dropdownBadge.textContent = data.count;
+                            dropdownBadge.style.display = 'inline-block';
+                        }
+                    } else {
+                        // Hide badges when 0
+                        if (navBadge) navBadge.style.display = 'none';
+                        if (dropdownBadge) dropdownBadge.style.display = 'none';
+                    }
+                }
+            })
+            .catch(error => {
+                clearTimeout(timeoutId); // Clear timeout on error
+                // Silently handle errors to prevent page redirects
+                console.log('Notification badge update skipped:', error.message);
+            });
+    }
+    
+    
+    // Run on page load only if user is logged in
+    document.addEventListener('DOMContentLoaded', function() {
+        // Only run if we have notification badge elements (indicating user is logged in)
+        const navBadge = document.getElementById('nav-notification-badge');
+        const dropdownBadge = document.getElementById('dropdown-notification-badge');
+        
+        if (navBadge || dropdownBadge) {
+            updateNotificationBadge();
+            
+            // Update every 30 seconds (only if user is logged in)
+            setInterval(updateNotificationBadge, 30000);
+        }
+    });
+    </script>
+
+    {% if session.get('loggedin') %}
+    <script>
+    // Prevent back button after logout (bfcache handling)
+    window.addEventListener('pageshow', function(event) {
+      if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
+        // Check if still logged in by calling server
+        fetch('/auth/check-session', {method: 'GET'})
+          .then(response => response.json())
+          .then(data => {
+            if (!data.logged_in) {
+              window.location.href = '/login';
+            }
+          })
+          .catch(() => {
+            window.location.href = '/login';
+          });
+      }
+    });
+    </script>
+    {% endif %}
+    
+    <!-- Dropdown Hover Functionality -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Only enable hover for desktop (screen width > 768px)
+        function isDesktop() {
+            return window.innerWidth > 768;
+        }
+        
+        const dropdowns = document.querySelectorAll('.dropdown');
+        
+        dropdowns.forEach(function(dropdown) {
+            const dropdownToggle = dropdown.querySelector('.dropdown-toggle');
+            const dropdownMenu = dropdown.querySelector('.dropdown-menu');
+            
+            if (dropdownToggle && dropdownMenu) {
+                let hoverTimeout;
+                
+                // Desktop hover functionality using Bootstrap Dropdown API for correct positioning
+                function addHoverListeners() {
+                    const bsDropdown = bootstrap.Dropdown.getOrCreateInstance(dropdownToggle, {
+                        autoClose: true,
+                        boundary: 'viewport',
+                        popperConfig: {
+                            strategy: 'fixed'
+                        }
+                    });
+                    // Show dropdown on mouseenter
+                    dropdown.addEventListener('mouseenter', function() {
+                        if (isDesktop()) {
+                            clearTimeout(hoverTimeout);
+                            bsDropdown.show();
+                            // Prevent auto-focus on first item
+                            setTimeout(function() {
+                                if (document.activeElement && document.activeElement.classList.contains('dropdown-item')) {
+                                    document.activeElement.blur();
+                                }
+                            }, 10);
+                        }
+                    });
+                    
+                    // Hide dropdown on mouseleave with delay
+                    dropdown.addEventListener('mouseleave', function() {
+                        if (isDesktop()) {
+                            hoverTimeout = setTimeout(function() {
+                                bsDropdown.hide();
+                            }, 150); // Small delay to prevent flickering
+                        }
+                    });
+                    
+                    // Keep dropdown open when hovering over menu
+                    dropdownMenu.addEventListener('mouseenter', function() {
+                        if (isDesktop()) {
+                            clearTimeout(hoverTimeout);
+                        }
+                    });
+                    
+                    dropdownMenu.addEventListener('mouseleave', function() {
+                        if (isDesktop()) {
+                            hoverTimeout = setTimeout(function() {
+                                bsDropdown.hide();
+                            }, 150);
+                        }
+                    });
+                }
+                
+                // Add hover listeners
+                addHoverListeners();
+                
+                // Handle window resize
+                window.addEventListener('resize', function() {
+                    // Remove hover listeners on mobile
+                    if (!isDesktop()) {
+                        dropdownToggle.setAttribute('aria-expanded', 'false');
+                        dropdownMenu.classList.remove('show');
+                    }
+                });
+            }
+        });
+    });
+    </script>
+    
+    {% block scripts_extra %}{% endblock %}
+  </body>
+</html>

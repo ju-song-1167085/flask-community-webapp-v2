@@ -1,0 +1,431 @@
+{% extends 'base.html' %}
+
+{% block title %}My Dashboard{% endblock %}
+{% set active_page = 'home' %}
+
+{% block content %}
+<div class="container-fluid py-4">
+
+  <!-- Page Title -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h1 class="page-title mb-0">My Dashboard</h1>
+      <p class="text-muted mb-0">Track your fitness journey, discover events, and connect with your community</p>
+    </div>
+  </div>
+
+  <!-- Personal Statistics -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-3">
+      <a href="{{ url_for('personal_activity') }}" class="text-decoration-none">
+        <div class="kpi">
+          <i class="bi bi-calendar-check"></i>
+          <h3>{{ stats.events_attended or 0 }}</h3>
+          <small>Events Attended</small>
+        </div>
+      </a>
+    </div>
+    <div class="col-md-3 col-sm-6">
+      <a href="{{ url_for('volunteer_records') }}" class="text-decoration-none">
+          <div class="kpi">
+              <i class="bi bi-heart"></i>
+              <h3>{{ stats.volunteer_events }}</h3>
+              <small>Volunteer Events</small>
+          </div>
+      </a>
+    </div>
+    <div class="col-md-3">
+      <div class="kpi kpi-static">
+        <i class="bi bi-calendar-plus text-primary"></i>
+        <h3>{{ stats.upcoming_registrations or 0 }}<small class="text-muted">/7</small></h3>
+        <small>Upcoming Events</small>
+        {% if stats.upcoming_registrations >= 7 %}
+        <div class="mt-1">
+          <span class="badge bg-warning text-dark">Limit Reached</span>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    <div class="col-md-3">
+        <div class="kpi kpi-static">
+            <i class="bi bi-people text-info"></i>
+            <h3>{{ user_groups|length or 0 }}<small class="text-muted">/10</small></h3>
+            <small>Groups Joined</small>
+            {% if user_groups|length >= 10 %}
+            <div class="mt-1">
+                <span class="badge bg-warning text-dark">Limit Reached</span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+  <!-- Quick Actions -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">Quick Actions</h5>
+    </div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <div class="d-grid">
+            <a href="{{ url_for('group_apply_for_participant') }}" class="btn btn-info btn-lg text-white">
+              <i class="bi bi-people me-2"></i>Create Group
+            </a>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <div class="d-grid">
+            <a href="{{ url_for('personal_activity') }}" class="btn btn-primary btn-lg">
+              <i class="bi bi-activity me-2"></i>Personal Activity
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- My Upcoming Events and Groups -->
+  <div class="row g-4">
+    <!-- My Upcoming Events -->
+    <div class="col-xl-7 col-lg-12">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">My Upcoming Events</h5>
+          <div class="d-flex gap-2 align-items-center">
+            <!-- Group Filter Dropdown -->
+            {% if user_groups|length > 1 %}
+            <div class="dropdown">
+              <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="groupFilterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-funnel me-1"></i>
+                {% if group_filter %}
+                  {% for group in user_groups %}
+                    {% if group.group_id == group_filter %}
+                      {{ group.name }}
+                    {% endif %}
+                  {% endfor %}
+                {% else %}
+                  All Groups
+                {% endif %}
+              </button>
+              <ul class="dropdown-menu" aria-labelledby="groupFilterDropdown">
+                <li><a class="dropdown-item" href="{{ url_for('participant_dashboard') }}">
+                  <i class="bi bi-grid me-2"></i>All Groups
+                </a></li>
+                {% for group in user_groups %}
+                <li><a class="dropdown-item" href="{{ url_for('participant_dashboard', group_filter=group.group_id) }}">
+                  <i class="bi bi-people me-2"></i>{{ group.name }}
+                </a></li>
+                {% endfor %}
+              </ul>
+            </div>
+            {% endif %}
+            <a href="{{ url_for('explore', tab='events') }}" class="btn btn-sm btn-outline-primary">Find More Events</a>
+          </div>
+        </div>
+        <div class="card-body">
+          {% if upcoming_events %}
+            <!-- Filter Status Indicator -->
+            {% if group_filter %}
+            <div class="alert alert-info alert-dismissible fade show mb-3" role="alert">
+              <i class="bi bi-funnel me-2"></i>
+              Showing events from: 
+              {% for group in user_groups %}
+                {% if group.group_id == group_filter %}
+                  <strong>{{ group.name }}</strong>
+                {% endif %}
+              {% endfor %}
+              <a href="{{ url_for('participant_dashboard') }}" class="btn btn-sm btn-outline-info ms-2">
+                <i class="bi bi-x-circle me-1"></i>Clear Filter
+              </a>
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endif %}
+            
+            <div class="list-group list-group-flush">
+              {% for event in upcoming_events %}
+              <div class="list-group-item d-flex justify-content-between align-items-start">
+                <div class="ms-2 me-auto">
+                  <div class="fw-bold">
+                    <a href="{{ url_for('event_detail', event_id=event.event_id) }}" class="text-decoration-none text-dark title-link">
+                      {{ event.event_title }}
+                    </a>
+                  </div>
+                  <div class="text-muted small">
+                    <i class="bi bi-calendar me-1"></i>{{ event.event_date|nz_date }}
+                    <i class="bi bi-clock ms-2 me-1"></i>{{ event.event_time|nz_time12_upper }}
+                  </div>
+                  <div class="text-muted small">
+                    <i class="bi bi-geo-alt me-1"></i>{{ event.location }}
+                    <i class="bi bi-people ms-2 me-1"></i>{{ event.group_name }}
+                  </div>
+                </div>
+                <div class="d-flex flex-column align-items-end gap-2">
+                  {% if event.event_role == 'volunteer' %}
+                    {% if event.volunteer_status == 'assigned' %}
+                      <span class="badge bg-warning rounded-pill">Volunteer (Pending)</span>
+                    {% elif event.volunteer_status == 'confirmed' %}
+                      <span class="badge bg-warning rounded-pill">Volunteer</span>
+                    {% else %}
+                      <span class="badge bg-warning rounded-pill">Volunteer</span>
+                    {% endif %}
+                  {% else %}
+                    <span class="badge bg-success rounded-pill">Participant</span>
+                  {% endif %}
+                  <a href="{{ url_for('event_detail', event_id=event.event_id) }}" class="btn btn-sm btn-outline-primary">View</a>
+                     
+                  <a href="{{ url_for('my_result_detail', event_id=event.event_id) }}"
+                    class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-flag"></i> Results
+                  </a>
+                 
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="text-center py-4">
+              <i class="bi bi-calendar text-muted" style="font-size: 3rem;"></i>
+              {% if group_filter %}
+                <p class="text-muted mt-2">No upcoming events from 
+                  {% for group in user_groups %}
+                    {% if group.group_id == group_filter %}
+                      <strong>{{ group.name }}</strong>
+                    {% endif %}
+                  {% endfor %}
+                </p>
+                <a href="{{ url_for('participant_dashboard') }}" class="btn btn-outline-primary btn-sm me-2">
+                  <i class="bi bi-grid me-1"></i>View All Groups
+                </a>
+              {% else %}
+                <p class="text-muted mt-2">No upcoming events</p>
+              {% endif %}
+              <a href="{{ url_for('explore', tab='events') }}" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-search me-1"></i>Find Events
+              </a>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- My Groups -->
+    <div class="col-xl-5 col-lg-12">
+      <div class="card h-100">
+        <div class="card-header d-flex justify-content-between align-items-center {% if user_groups and user_groups|selectattr('group_role', 'equalto', 'manager')|list %}bg-warning{% endif %}">
+          <h5 class="mb-0">My Groups</h5>
+          <a href="{{ url_for('explore', tab='groups') }}" class="btn btn-sm btn-outline-primary">Find More</a>
+        </div>
+        <div class="card-body">
+          {% if user_groups or pending_join_requests %}
+            <div class="list-group list-group-flush">
+              <!-- Active Groups -->
+              {% for group in user_groups %}
+              <div class="list-group-item">
+                <div class="d-flex align-items-center justify-content-between flex-nowrap">
+                  <div class="d-flex align-items-start flex-grow-1" style="min-width: 0; margin-right: 0.5rem;">
+                    <i class="bi bi-people me-2 text-primary mt-1 flex-shrink-0" style="font-size: 1.3rem;"></i>
+                    <div style="min-width: 0; flex-grow: 1;">
+                      <h6 class="mb-1">
+                        <a href="{{ url_for('group_detail', group_id=group.group_id) }}" class="text-decoration-none text-dark title-link">
+                          {{ group.name }}
+                        </a>
+                      </h6>
+                      <div>
+                        {% if group.group_role == 'manager' %}
+                          <span class="badge bg-primary">Manager</span>
+                        {% elif group.group_role == 'volunteer' %}
+                          <span class="badge bg-warning text-dark">Staff</span>
+                        {% else %}
+                          <span class="badge bg-light text-dark">Member</span>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {% if group.group_role == 'manager' %}
+                  <div class="d-flex gap-1 flex-nowrap flex-shrink-0">
+                    <a href="{{ url_for('membership_management', group_id=group.group_id) }}" 
+                      class="btn btn-outline-secondary btn-sm px-2 py-1 position-relative" 
+                      style="font-size: 0.75rem;">
+                      <i class="bi bi-gear" style="font-size: 0.85rem;"></i> Membership
+                      {% if group.group_join_pending_count > 0 %}
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">
+                          {{ group.group_join_pending_count }}
+                          <span class="visually-hidden">pending join requests</span>
+                        </span>
+                      {% endif %}
+                    </a>
+                    <a href="{{ url_for('manage_events') }}?group_id={{ group.group_id }}" 
+                      class="btn btn-outline-primary btn-sm px-2 py-1 position-relative" 
+                      style="font-size: 0.75rem;">
+                      <i class="bi bi-calendar-event" style="font-size: 0.85rem;"></i> Manage Events
+                      {% if group.volunteer_pending_count > 0 %}
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">
+                          {{ group.volunteer_pending_count }}
+                          <span class="visually-hidden">pending volunteer requests</span>
+                        </span>
+                      {% endif %}
+                    </a>
+                    <a href="{{ url_for('create_event') }}?group_id={{ group.group_id }}" 
+                      class="btn btn-outline-success btn-sm px-1 py-1" 
+                      style="min-width: 28px; font-size: 0.75rem;" 
+                      title="Create Event">
+                      <i class="bi bi-plus" style="font-size: 0.8rem;"></i>
+                    </a>
+                  </div>
+                  {% endif %}
+                </div>
+              </div>
+              {% endfor %}
+              
+              <!-- Pending Requests -->
+              {% for request in pending_join_requests %}
+              <div class="list-group-item border-warning">
+                <div class="d-flex align-items-center justify-content-between flex-nowrap">
+                  <div class="d-flex align-items-start flex-grow-1" style="min-width: 0; margin-right: 0.5rem;">
+                    <i class="bi bi-clock-history me-2 text-warning mt-1 flex-shrink-0" style="font-size: 1.3rem;"></i>
+                    <div style="min-width: 0; flex-grow: 1;">
+                      <h6 class="mb-1">
+                        <a href="{{ url_for('group_detail', group_id=request.group_id) }}" class="text-decoration-none text-dark">
+                          {{ request.group_name }}
+                        </a>
+                      </h6>
+                      <div>
+                        <span class="badge bg-warning text-dark">
+                          <i class="bi bi-clock me-1"></i>Pending Approval
+                        </span>
+                        <span class="badge bg-{% if request.group_type == 'activity' %}primary{% elif request.group_type == 'social' %}info{% else %}secondary{% endif %} ms-1">
+                          {{ request.group_type.title() }}
+                        </span>
+                      </div>
+                      <div class="text-muted small mt-1">
+                        <i class="bi bi-calendar me-1"></i>Requested {{ request.join_date|nz_date }}
+                      </div>
+                    </div>
+                  </div>
+                  <div class="d-flex gap-1 flex-nowrap flex-shrink-0">
+                    <form method="POST" action="{{ url_for('cancel_group_request', group_id=request.group_id) }}" class="d-inline">
+                      <button type="submit" class="btn btn-outline-danger btn-sm px-2 py-1" 
+                              style="font-size: 0.75rem;"
+                              onclick="return confirm('Are you sure you want to cancel your request to join {{ request.group_name }}?')">
+                        <i class="bi bi-x-circle" style="font-size: 0.85rem;"></i> Cancel
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="text-center py-4">
+              <i class="bi bi-people text-muted" style="font-size: 2rem;"></i>
+              <p class="text-muted mt-2">No groups joined yet</p>
+              <a href="{{ url_for('explore', tab='groups') }}" class="btn btn-outline-primary btn-sm">Find Groups</a>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Group Creation Application Status (if exists) -->
+  {% if pending_group_application %}
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card border-info">
+        <div class="card-header bg-light">
+          <h5 class="mb-0 text-info">Group Creation Application</h5>
+        </div>
+        <div class="card-body">
+          <div class="alert alert-info mb-0">
+            <i class="bi bi-clock me-2"></i>
+            Your application to create "{{ pending_group_application.group_name }}" is pending review.
+            <div class="mt-2">
+              <small class="text-muted">Applied on {{ pending_group_application.created_at|nz_date }}</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+
+
+<style>
+/* Compact button styling for group cards */
+.list-group-item .btn-sm {
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.list-group-item .btn-sm i {
+  vertical-align: baseline;
+}
+
+/* Fix: Override Bootstrap's navbar flex affecting main content */
+main.flex-fill .container-fluid {
+  display: block !important;
+  width: 100% !important;
+}
+
+/* Ensure proper responsive behavior */
+@media (min-width: 992px) {
+  main.flex-fill .container-fluid {
+    max-width: 100%;
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
+@media (max-width: 991px) {
+  main.flex-fill .container-fluid {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+/* Prevent button overflow in group list items */
+.list-group-item {
+  overflow: hidden;
+}
+
+.list-group-item > div:first-child {
+  min-width: 0;
+  width: 100%;
+}
+
+.list-group-item .btn-sm {
+  flex-shrink: 0;
+}
+
+/* Responsive button sizing for smaller screens */
+@media (max-width: 768px) {
+  .list-group-item .d-flex.gap-1.flex-nowrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .list-group-item .d-flex.gap-1.flex-nowrap::-webkit-scrollbar {
+    height: 4px;
+  }
+  
+  .list-group-item .d-flex.gap-1.flex-nowrap::-webkit-scrollbar-thumb {
+    background-color: #dee2e6;
+    border-radius: 2px;
+  }
+}
+
+/* Ensure group name doesn't overflow */
+.list-group-item h6 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+</style>
+
+{% endblock %}

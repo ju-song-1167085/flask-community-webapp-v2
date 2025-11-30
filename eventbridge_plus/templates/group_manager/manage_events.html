@@ -1,0 +1,275 @@
+{% extends 'base.html' %}
+{% block title %}Manage Events{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <!-- Page Header -->
+  <div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <div>
+        <h1 class="page-title mb-0">Management Event</h1>
+        <p class="text-muted mb-0">Total: {{ pagination.total }} events</p>
+      </div>
+      <div class="d-flex gap-2">
+        <a href="{{ url_for('create_event') }}" class="btn btn-activeloop btn-compact">
+          <i class="bi bi-plus-circle me-2"></i>Create New Event
+        </a>
+      </div>
+    </div>
+  </div>
+
+    <!-- Search and Filter -->
+    <div class="card mb-3">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('manage_events') }}" id="searchForm">
+                <div class="row align-items-end">
+                    <!-- Event Search -->
+                    <div class="col-md-3 mb-3">
+                        <label for="eventSearch" class="form-label">Search Events</label>
+                        <input type="text" class="form-control" id="eventSearch" name="event_search" 
+                               value="{{ event_search or '' }}" placeholder="Search by event title...">
+                    </div>
+                    
+                    <!-- Group Filter (for group managers) -->
+                    {% if not is_admin and available_groups %}
+                    <div class="col-md-3 mb-3">
+                        <label for="groupFilter" class="form-label">Filter by Group</label>
+                        <select class="form-select" id="groupFilter" name="group_filter">
+                            <option value="">All Groups</option>
+                            {% for group in available_groups %}
+                            <option value="{{ group.group_id }}" 
+                                    {% if group_filter == group.group_id|string %}selected{% endif %}>
+                                {{ group.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Sort By -->
+                    <div class="col-md-3 mb-3">
+                        <label for="sortSelect" class="form-label">Sort By</label>
+                        <div class="d-flex gap-1">
+                          <select class="form-select" id="sortSelect" name="sort">
+                              <option value="date_desc" {% if sort_by == 'date_desc' %}selected{% endif %}>Date (Newest First)</option>
+                              <option value="date_asc" {% if sort_by == 'date_asc' %}selected{% endif %}>Date (Oldest First)</option>
+                              <option value="title_asc" {% if sort_by == 'title_asc' %}selected{% endif %}>Title (A-Z)</option>
+                              <option value="title_desc" {% if sort_by == 'title_desc' %}selected{% endif %}>Title (Z-A)</option>
+                              <option value="registered" {% if sort_by == 'registered' %}selected{% endif %}>Most Registered</option>
+                          </select>
+                          
+                        </div>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="col-md-2 mb-3 d-flex align-items-end">
+                        <div class="d-flex gap-1">
+                            <button type="submit" class="btn btn-activeloop btn-extra-compact icon-bold" title="Search" aria-label="Search">
+                                <i class="bi bi-search"></i>
+                            </button>
+                            <a href="{{ url_for('manage_events') }}" class="btn btn-outline-activeloop btn-extra-compact icon-bold" title="Reset" aria-label="Reset">
+                                <i class="bi bi-arrow-counterclockwise"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+  {% if events %}
+    <div class="row g-3">
+      {% for ev in events %}
+      <div class="col-12">
+        <div class="card">
+          <div class="card-body py-3">
+            <div class="row align-items-center">
+              <!-- Event Info -->
+              <div class="col-md-7">
+                <h5 class="mb-1">
+                  {{ ev.event_title }}
+                  {% if ev.is_past %}
+                    <span class="badge bg-secondary ms-2">Past Event</span>
+                  {% endif %}
+                </h5>
+                <p class="text-muted mb-1 small">
+                  <i class="bi bi-people me-1"></i>{{ ev.group_name }}
+                </p>
+                <p class="mb-1 small {% if ev.is_past %}text-decoration-line-through text-muted{% endif %}">
+                  <i class="bi bi-calendar-event me-1"></i>{{ ev.event_date|nz_date }}
+                  <span class="ms-2"><i class="bi bi-clock me-1"></i>{{ ev.event_time|nz_time12_upper }}</span>
+                </p>
+                <p class="mb-0 small">
+                  <i class="bi bi-geo-alt me-1"></i>{{ ev.location }}
+                </p>
+              </div>
+
+              <!-- Event Stats -->
+              <div class="col-md-3">
+                <div class="text-center">
+                  <div class="mb-1">
+                    <span class="badge bg-light text-dark border me-1">{{ ev.event_type }}</span>
+
+                    {# Displays display_status based on backend calculations #}
+                    {% set ds = ev.display_status %}
+                    <span class="badge
+                      {% if ds == 'scheduled' %} bg-success
+                      {% elif ds == 'ongoing' %} bg-info
+                      {% elif ds == 'completed' %} bg-secondary
+                      {% elif ds == 'cancelled' %} bg-danger
+                      {% else %} bg-warning
+                      {% endif %}">
+                      {{ ds|title }}
+                    </span>
+                  </div>
+
+                  <div class="small">
+                    <strong>{{ ev.registered_count }}</strong> / {{ ev.max_participants }} registered
+                  </div>
+                  
+                  <div class="small text-muted">
+                    {{ ev.participant_count or 0 }} participants
+                    <span class="ms-2">
+                        <a href="{{ url_for('pending_volunteers', event_id=ev.event_id) }}" 
+                           class="text-decoration-none text-muted position-relative">
+                            {{ ev.volunteer_count or 0 }} volunteers
+                            {% if ev.pending_volunteer_count > 0 %}
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" 
+                                  style="font-size: 0.6rem;">
+                                {{ ev.pending_volunteer_count }}
+                            </span>
+                            {% endif %}
+                        </a>
+                    </span>
+                  </div>
+
+                  {% if ev.is_full %}
+                    <div class="mt-1"><span class="badge bg-danger">Full</span></div>
+                  {% elif ev.spots_available <= 5 %}
+                    <div class="mt-1"><span class="badge bg-warning">{{ ev.spots_available }} spots left</span></div>
+                  {% endif %}
+                </div>
+              </div>
+
+              <!-- Actions -->
+              <div class="col-md-2 col-12">
+                <div class="dropdown">
+                  <button class="btn btn-outline-secondary btn-sm dropdown-toggle"
+                          type="button" data-bs-toggle="dropdown"
+                          data-bs-auto-close="true" data-bs-boundary="viewport"
+                          title="Event Actions">
+                    <i class="bi bi-gear me-1"></i>
+                    <span class="d-none d-lg-inline">Settings</span>
+                  </button>
+                  <ul class="dropdown-menu dropdown-menu-end">
+                    <li><h6 class="dropdown-header">Event Actions</h6></li>
+
+                    <li>
+                      <a class="dropdown-item" href="{{ url_for('event_detail', event_id=ev.event_id) }}">
+                        <i class="bi bi-eye me-2"></i>View Event
+                      </a>
+                    </li>
+
+                    <!-- <li>
+                      <a class="dropdown-item" href="{{ url_for('event_stats', event_id=ev.event_id) }}">
+                        <i class="bi bi-bar-chart-line me-2"></i>View Stats
+                      </a>
+                    </li> -->
+
+                    {% if ev.is_past %}
+                      <li>
+                        <span class="dropdown-item text-muted" title="Cannot edit past events">
+                          <i class="bi bi-pencil me-2"></i>Edit (Past Event)
+                        </span>
+                      </li>
+                    {% else %}
+                      <li>
+                        <a class="dropdown-item" href="{{ url_for('edit_event', event_id=ev.event_id) }}">
+                          <i class="bi bi-pencil me-2"></i>Edit Event
+                        </a>
+                      </li>
+                    {% endif %}
+
+                    <li>
+                      {% set disable_record = (ev.display_status in ['scheduled','draft','cancelled']) %}
+                      {% if disable_record %}
+                        <span class="dropdown-item text-muted" title="Not available until the event starts/finishes">
+                          <i class="bi bi-flag-fill me-2"></i>Record Finish
+                        </span>
+                      {% else %}
+                        <a class="dropdown-item" href="{{ url_for('record_finish_manual', event_id=ev.event_id) }}">
+                          <i class="bi bi-flag-fill me-2"></i>Record Finish
+                        </a>
+                      {% endif %}
+                    </li>
+                    <!-- New CSV import entry -->
+                    <li>
+                      <a class="dropdown-item" href="{{ url_for('results_import_form', event_id=ev.event_id) }}">
+                        <i class="bi bi-file-earmark-spreadsheet me-2"></i>Import Results (CSV)
+                      </a>
+                    </li>
+
+                    <li>
+                      <a class="dropdown-item position-relative" href="{{ url_for('pending_volunteers', event_id=ev.event_id) }}">
+                        <i class="bi bi-heart me-2"></i>Manage Volunteers
+                        {% if ev.pending_volunteer_count > 0 %}
+                        <span class="position-absolute top-50 end-0 translate-middle-y badge rounded-pill bg-danger me-2" style="font-size: 0.6rem;">
+                          {{ ev.pending_volunteer_count }}
+                        </span>
+                        {% endif %}
+                      </a>
+                    </li>
+
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                      <form method="post"
+                            action="{{ url_for('events_cancel', group_id=ev.group_id, event_id=ev.event_id) }}"
+                            class="d-inline">
+                        <button type="submit" class="dropdown-item text-warning"
+                                {% if ev.display_status == 'cancelled' %}disabled{% endif %}
+                                onclick="return confirm('Cancel this event? All participants will be notified.');">
+                          <i class="bi bi-slash-circle me-2"></i>Cancel Event
+                        </button>
+                      </form>
+                    </li>
+
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                      <form method="post"
+                            action="{{ url_for('events_delete', group_id=ev.group_id, event_id=ev.event_id) }}"
+                            class="d-inline">
+                        <button type="submit" class="dropdown-item text-danger"
+                                onclick="return confirm('Delete this event permanently? This cannot be undone.');">
+                          <i class="bi bi-trash me-2"></i>Delete Event
+                        </button>
+                      </form>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+              <!-- /Actions -->
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% include 'components/pagination.html' %}
+
+  {% else %}
+    <!-- Empty State -->
+    <div class="card">
+      <div class="card-body text-center py-5">
+        <i class="bi bi-calendar-x text-muted" style="font-size: 3rem;"></i>
+        <h5 class="mt-3 text-muted">No Events Yet</h5>
+        <p class="text-muted">Create your first event to get started.</p>
+        <a href="{{ url_for('create_event') }}" class="btn btn-primary mt-2">
+          <i class="bi bi-plus-circle me-2"></i>Create Event
+        </a>
+      </div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

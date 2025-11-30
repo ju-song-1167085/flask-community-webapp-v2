@@ -1,0 +1,358 @@
+<!-- profile.html -->
+{% extends 'base.html' %}
+{% set hide_sidebar = True %}
+{% block title %}Profile{% endblock %}
+
+{% block content %}
+{# Set a default empty 'form' object to prevent errors if it's not passed from the backend #}
+{% set form = form|default({}, true) %}
+
+<!-- MOD START: is_admin is now passed from backend -->
+{% set is_admin = session.get('platform_role') == 'super_admin' %}
+<!-- MOD END -->
+
+<!-- Hero / Cover Section -->
+<div class="hero-overlay mb-4 p-4 p-md-5" style="background: url('{{ url_for('static', filename='img/fitnz-hero.jpg') }}') center/cover no-repeat; min-height: 165px; border-radius: var(--radius); position: relative; overflow: hidden;">
+  <div class="d-flex align-items-end" style="position:absolute; inset:0; background: rgba(30,94,50,.55); color: #fff !important; border-radius: var(--radius);">
+    <div class="p-4 p-md-5">
+      <h1 class="display-6 fw-bold" style="color: white !important;">
+        {% if is_admin and not is_own_profile %}
+          Edit User Profile
+        {% else %}
+          Hello, {{ profile.first_name or profile.username }} 👋
+        {% endif %}
+      </h1>
+      <p class="mb-0">
+        {% if is_admin and not is_own_profile %}
+          Admin editing {{ profile.first_name or profile.username }}'s profile
+        {% else %}
+          Manage your profile, security, and preferences.
+        {% endif %}
+      </p>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Left column: Avatar, quick info -->
+  <div class="col-lg-4">
+    <div class="card" style="min-height: 350px;">
+      <div class="card-body p-4 text-center">
+        <img src="{% if profile.user_image %}{{ url_for('static', filename=profile.user_image) }}{% else %}{{ url_for('static', filename='images/default.png') }}{% endif %}" 
+             alt="Avatar" 
+             class="mb-3" 
+             id="avatarPreview"
+             style="width:112px; height:112px; border-radius:50%; object-fit:cover; border:4px solid #fff !important; box-shadow:0 6px 18px rgba(0,0,0,.12);">
+        <h2 class="h5 mb-0">{{ profile.first_name or '' }} {{ profile.last_name or '' }}</h2>
+        <div class="text-muted">@{{ profile.username }}</div>
+
+        <!-- Biography -->
+        {% if profile.biography %}
+          <div class="mt-2 small" style="white-space: pre-line;">{{ profile.biography }}</div>
+        {% endif %}
+
+        {% if profile.location %}
+          <div class="mt-2"><i class="bi bi-geo-alt"></i> {{ profile.location }}</div>
+        {% endif %}
+
+        <!-- Email and role -->
+        {% if profile.email %}
+          <div class="mt-2">
+            <i class="bi bi-envelope"></i>
+            <a href="mailto:{{ profile.email }}">{{ profile.email }}</a>
+          </div>
+        {% endif %}
+        {% if profile.platform_role %}
+          <div class="mt-1">
+            <span class="badge rounded-pill text-bg-success">{{ profile.platform_role|capitalize }}</span>
+          </div>
+        {% endif %}
+
+        <hr class="my-4">
+
+        <!-- Notification preferences -->
+        <div class="text-start">
+          <label class="form-label fw-semibold">Notifications</label>
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" id="notification-toggle"
+                   onchange="toggleNotification()"
+                   {% if profile.notifications_enabled %}checked{% endif %}>
+            <label class="form-check-label" for="notification-toggle">Enable notifications</label>
+          </div>
+        </div>
+
+        <!-- Avatar upload form -->
+        <form action="{% if is_admin and not is_own_profile %}{{ url_for('admin_profile_save', user_id=profile.user_id) }}{% else %}{{ url_for('edit_profile') }}{% endif %}" method="post" enctype="multipart/form-data">
+            <input type="hidden" name="action" value="update_avatar">
+            <div class="mb-3 text-start">
+                <label for="profile_picture" class="form-label fw-semibold">Update Profile Picture</label>
+                <input class="form-control" type="file" id="profile_picture" name="profile_picture" accept="image/*">
+                <div class="form-text">Recommended: 512×512px or larger, JPG/PNG.</div>
+            </div>
+            <div class="d-grid">
+                <button class="btn btn-brand" type="submit"><i class="bi bi-upload me-2"></i>Upload Image</button>
+            </div>
+        </form>
+
+        <hr class="my-4">
+      </div>
+    </div>
+  </div>
+
+  <!-- Right column: Tabbed interface for editing profile details -->
+  <div class="col-lg-8">
+    <div class="card" style="min-height: 350px;">
+      <div class="card-body p-0">
+        <!-- Navigation for tabs -->
+        <ul class="nav nav-pills p-3 gap-2" id="profileTabs" role="tablist" style="color: var(--muted); font-weight: 600; border-radius: 10px; background: transparent; border: 2px solid transparent;">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="info-tab" data-bs-toggle="pill" data-bs-target="#info-pane" type="button" role="tab" style="color: var(--muted); font-weight: 600; border-radius: 10px; background: transparent; border: 2px solid transparent;">Profile</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="security-tab" data-bs-toggle="pill" data-bs-target="#security-pane" type="button" role="tab" style="color: var(--muted); font-weight: 600; border-radius: 10px; background: transparent; border: 2px solid transparent;">Change Password</button>
+          </li>
+        </ul>
+        <hr class="mt-0">
+
+        <div class="tab-content p-4">
+          <!-- Tab 1: Basic Information -->
+          <div class="tab-pane fade show active" id="info-pane" role="tabpanel" aria-labelledby="info-tab">
+            <form action="{% if is_admin and not is_own_profile %}{{ url_for('admin_profile_save', user_id=profile.user_id) }}{% else %}{{ url_for('edit_profile') }}{% endif %}" method="post" novalidate>
+              <input type="hidden" name="action" value="update_info">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label for="first_name" class="form-label fw-semibold">First Name</label>
+                  <input type="text" class="form-control{% if first_name_error %} is-invalid{% endif %}" id="first_name" name="first_name" maxlength="50" value="{{ form.first_name or profile.first_name or '' }}">
+                  <div class="invalid-feedback">{{ first_name_error }}</div>
+                </div>
+                <div class="col-md-6">
+                  <label for="last_name" class="form-label fw-semibold">Last Name</label>
+                  <input type="text" class="form-control{% if last_name_error %} is-invalid{% endif %}" id="last_name" name="last_name" maxlength="50" value="{{ form.last_name or profile.last_name or '' }}">
+                  <div class="invalid-feedback">{{ last_name_error }}</div>
+                </div>
+                <div class="col-md-6">
+                  <label for="username" class="form-label fw-semibold">Username</label>
+                  {% if is_admin %}
+                    <input type="text"
+                          class="form-control{% if username_error %} is-invalid{% endif %}"
+                          id="username" name="username" maxlength="50"
+                          pattern="^[A-Za-z0-9_.]+$"
+                          value="{{ form.username or profile.username or '' }}" required>
+                    <div class="form-text">Letters, numbers, underscores, and dots only. Shown on public pages.</div>
+                  {% else %}
+                    <input type="text" class="form-control" value="{{ profile.username or '' }}" readonly disabled>
+                    <div class="form-text">Username is managed by admin.</div>
+                  {% endif %}
+                  <div class="invalid-feedback">{{ username_error }}</div>
+                </div>
+
+                <!-- Email read-only for non-admin -->
+                <div class="col-md-6">
+                  <label for="email" class="form-label fw-semibold">Email Address</label>
+                  <input type="email" class="form-control{% if email_error %} is-invalid{% endif %}" 
+                        id="email" name="email" maxlength="100" 
+                        value="{{ form.email or profile.email or '' }}"
+                        {% if not is_admin %}readonly disabled{% endif %}>
+                  <div class="invalid-feedback">{{ email_error }}</div>
+                  <div class="form-text">
+                    {% if is_admin %}Editable by admin.{% else %}Email is managed by admin.{% endif %}
+                  </div>
+                </div>
+
+                <div class="col-md-6">
+                  <label for="location" class="form-label fw-semibold">Location</label>
+                  <select class="form-select{% if location_error %} is-invalid{% endif %}" 
+                          id="location" name="location" required>
+                    {% set current_location = form.location or profile.location or '' %}
+                    <option value="" {% if not current_location %}selected{% endif %}>
+                      Select your location
+                    </option>
+                    {% for city in available_locations %}
+                      <option value="{{ city }}" {% if current_location == city %}selected{% endif %}>
+                        {{ city }}
+                      </option>
+                    {% endfor %}
+                  </select>
+                  <div class="invalid-feedback">{{ location_error }}</div>
+                </div>
+
+                <!-- Role field (admin editable, others read-only) -->
+                <div class="col-md-6">
+                  <label for="role" class="form-label fw-semibold">Role</label>
+                  {% if is_admin %}
+                    <select id="role" name="role" class="form-select">
+                      {% set current_role = form.role or profile.platform_role %}
+                      {% for r in ['participant','support_technician','super_admin'] %}
+                        <option value="{{ r }}" {% if current_role == r %}selected{% endif %}>
+                          {% if r == 'super_admin' %}Super Admin
+                          {% elif r == 'support_technician' %}Support Technician
+                          {% else %}Participant{% endif %}
+                        </option>
+                      {% endfor %}
+                    </select>
+                    <div class="form-text">Admins can change user roles.</div>
+                  {% else %}
+                    <input type="text" class="form-control" value="{{ profile.platform_role|capitalize }}" readonly disabled>
+                    <div class="form-text">Role is managed by admin.</div>
+                  {% endif %}
+                </div>
+
+                <div class="col-12">
+                  <label for="bio" class="form-label fw-semibold">Biography</label>
+                  <textarea class="form-control" id="bio" name="bio" rows="4" maxlength="300">{{ form.bio or profile.biography or '' }}</textarea>
+                  <div class="d-flex justify-content-between"><small class="help-text">Up to 300 characters</small><small id="bioCounter" class="text-muted">0/300</small></div>
+                </div>
+              </div>
+              <div class="d-flex justify-content-end gap-2 mt-4">
+                <button type="reset" class="btn btn-activeloop d-inline-flex align-items-center" style="border-radius: var(--radius);">
+                  <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
+                </button>
+                <button type="submit" class="btn fw-bold d-inline-flex align-items-center" style="background: var(--brand-green); color: #fff; border-color: var(--brand-green); border-radius: var(--radius);">
+                  <i class="bi bi-save me-2"></i>Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Tab 2: Password Change -->
+          <div class="tab-pane fade" id="security-pane" role="tabpanel" aria-labelledby="security-tab">
+            <form action="{{ url_for('changePassword') }}" method="post" novalidate>
+              <div class="row g-3">
+                <div class="col-12">
+                  <label for="current_password" class="form-label fw-semibold">Current Password</label>
+                  <div class="input-group input-group-lg">
+                    <input type="password" class="form-control{% if current_password_error %} is-invalid{% endif %}" 
+                          id="current_password" name="current_password" autocomplete="current-password" required>
+                    <button class="btn btn-outline-secondary" type="button" id="togglePwd0">Show</button>
+                  </div>
+                  <div class="invalid-feedback">{{ current_password_error }}</div>
+                </div>
+                <div class="col-md-6">
+                  <label for="new_password" class="form-label fw-semibold">New Password</label>
+                  <div class="input-group input-group-lg">
+                    <input type="password" class="form-control{% if new_password_error %} is-invalid{% endif %}" 
+                          id="new_password" name="new_password" autocomplete="new-password" required>
+                    <button class="btn btn-outline-secondary" type="button" id="togglePwd1">Show</button>
+                  </div>
+                  <div class="invalid-feedback">{{ new_password_error }}</div>
+                  <small id="capsHint1" class="text-danger d-none">Looks like Caps Lock is on</small>
+                  <div class="form-text"><i class="bi bi-shield-check me-1"></i>Recommended: At least 8 characters with letters and numbers and special characters</div>
+                </div>
+                <div class="col-md-6">
+                  <label for="new_password_confirm" class="form-label fw-semibold">Confirm New Password</label>
+                  <div class="input-group input-group-lg">
+                    <input type="password" class="form-control{% if confirm_password_error %} is-invalid{% endif %}" 
+                          id="new_password_confirm" name="confirm_password" autocomplete="new-password" required>
+                    <button class="btn btn-outline-secondary" type="button" id="togglePwd2">Show</button>
+                  </div>
+                  <div class="invalid-feedback">{{ confirm_password_error }}</div>
+                  <small id="capsHint2" class="text-danger d-none">Looks like Caps Lock is on</small>
+                </div>
+              </div>
+              <div class="d-flex justify-content-end gap-2 mt-4">
+                <button type="submit" class="btn btn-brand"><i class="bi bi-key-fill me-2"></i>Update Password</button>
+              </div>
+            </form>
+
+            <hr class="my-4">
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# JavaScript for interactivity on this page #}
+<script>
+  function setupToggle(btnId, inputId, hintId){
+    const btn = document.getElementById(btnId);
+    const input = document.getElementById(inputId);
+    const hint = hintId ? document.getElementById(hintId) : null;
+    if(!btn || !input) return;
+    btn.addEventListener('click', ()=>{
+      const isText = input.type === 'text';
+      input.type = isText ? 'password' : 'text';
+      btn.textContent = isText ? 'Show' : 'Hide';
+    });
+    input.addEventListener('keyup', (e)=>{
+      if(!hint) return;
+      const on = e.getModifierState && e.getModifierState('CapsLock');
+      hint.classList.toggle('d-none', !on);
+    });
+  }
+  setupToggle('togglePwd0','current_password');
+  setupToggle('togglePwd1','new_password','capsHint1');
+  setupToggle('togglePwd2','new_password_confirm','capsHint2');
+
+  // Live preview for the avatar image before uploading
+  const avatarInput = document.getElementById('profile_picture');
+  const avatarPreview = document.getElementById('avatarPreview');
+  if (avatarInput && avatarPreview) {
+    avatarInput.addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => { avatarPreview.src = ev.target.result; };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // Character counter for the biography textarea
+  const bio = document.getElementById('bio');
+  const bioCounter = document.getElementById('bioCounter');
+  if (bio && bioCounter) {
+    const updateCounter = () => { bioCounter.textContent = `${bio.value.length}/300`; };
+    bio.addEventListener('input', updateCounter);
+    updateCounter();
+  }
+
+  // Activate security tab via URL param
+  document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const activeTab = urlParams.get('tab');
+    if (activeTab === 'security') {
+      const securityTab = document.getElementById('security-tab');
+      const securityPane = document.getElementById('security-pane');
+      if (securityTab && securityPane) {
+        document.querySelectorAll('.nav-link').forEach(tab => tab.classList.remove('active'));
+        document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('show', 'active'));
+        securityTab.classList.add('active');
+        securityPane.classList.add('show', 'active');
+      }
+    }
+  });
+  function toggleNotification() {
+        const checkbox = document.getElementById('notification-toggle');
+        const enabled = checkbox.checked;
+        
+        fetch('/noti/toggle', { 
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ enabled: enabled })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showStatusMessage(data.message, 'success');
+                updateNotificationBadge();
+            }
+        });
+    }
+    
+    function updateNotificationBadge() {
+        fetch('/noti/unread-count')  // 
+            .then(response => response.json())
+            .then(data => {
+                const badge = document.getElementById('notification-badge');
+                if (badge) {
+                    badge.textContent = data.count;
+                    badge.style.display = data.count > 0 ? 'inline-block' : 'none';
+                }
+            });
+    }
+</script>
+
+{% endblock %}

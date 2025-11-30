@@ -1,0 +1,580 @@
+{% extends "base.html" %}
+
+{% set active_page = 'helpdesk_home' %}
+
+{% block title %}Support Queue{% endblock %}
+
+{% block head %}
+<style>
+.sortable-header a {
+  color: inherit;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.sortable-header a:hover {
+  color: #0d6efd;
+  text-decoration: none;
+}
+
+.sortable-header i {
+  font-size: 0.8em;
+  opacity: 0.7;
+}
+
+.table th, .table td {
+  padding: 0.75rem 1rem;
+  vertical-align: middle;
+}
+
+.table th {
+  border-bottom: 2px solid #dee2e6;
+  font-weight: 600;
+}
+
+.title-link:hover {
+  text-decoration: underline !important;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+  <div class="row">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0 fw-bolder">
+          Support Queue
+        </h1>
+        <div class="d-flex gap-2">
+          {% if session.get('platform_role') == 'super_admin' %}
+          <button class="btn btn-outline-activeloop btn-compact d-inline-flex align-items-center" id="refreshAndAssignBtn" title="Refresh page and auto-assign unassigned requests">
+            <i class="bi bi-arrow-clockwise me-1"></i>
+            Refresh & Auto-Assign
+          </button>
+          {% endif %}
+          <a href="{{ url_for('support_rejection_history') }}" class="btn btn-activeloop btn-compact d-inline-flex align-items-center" title="View rejection history for helpdesk support">
+            <i class="bi bi-x-circle me-1"></i>
+            Rejection History
+          </a>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div class="mb-4">
+        <div class="card">
+          <div class="card-body">
+            <form method="GET" class="row g-3">
+              <div class="col-md-2">
+                <label for="status" class="form-label">Status</label>
+                <select class="form-select" id="status" name="status">
+                  <option value="">All Statuses</option>
+                  <option value="new" {% if current_filters.status == 'new' %}selected{% endif %}>New</option>
+                  <option value="assigned" {% if current_filters.status == 'assigned' %}selected{% endif %}>Assigned</option>
+                  <option value="blocked" {% if current_filters.status == 'blocked' %}selected{% endif %}>Blocked</option>
+                  <option value="solved" {% if current_filters.status == 'solved' %}selected{% endif %}>Solved</option>
+                </select>
+              </div>
+              
+              <div class="col-md-2">
+                <label for="category" class="form-label">Category</label>
+                <select class="form-select" id="category" name="category">
+                  <option value="">All Categories</option>
+                  <option value="technical_issue" {% if current_filters.category == 'technical_issue' %}selected{% endif %}>Technical Issue</option>
+                  <option value="account_problem" {% if current_filters.category == 'account_problem' %}selected{% endif %}>Account Problem</option>
+                  <option value="event_inquiry" {% if current_filters.category == 'event_inquiry' %}selected{% endif %}>Event Inquiry</option>
+                  <option value="group_management" {% if current_filters.category == 'group_management' %}selected{% endif %}>Group Management</option>
+                  <option value="rejection_inquiry" {% if current_filters.category == 'rejection_inquiry' %}selected{% endif %}>Rejection Inquiry</option>
+                  <option value="general_help" {% if current_filters.category == 'general_help' %}selected{% endif %}>General Help</option>
+                </select>
+              </div>
+              
+              <div class="col-md-2">
+                <label for="priority" class="form-label">Priority</label>
+                <select class="form-select" id="priority" name="priority">
+                  <option value="">All Priorities</option>
+                  <option value="urgent" {% if current_filters.priority == 'urgent' %}selected{% endif %}>Urgent</option>
+                  <option value="high" {% if current_filters.priority == 'high' %}selected{% endif %}>High</option>
+                  <option value="medium" {% if current_filters.priority == 'medium' %}selected{% endif %}>Medium</option>
+                  <option value="low" {% if current_filters.priority == 'low' %}selected{% endif %}>Low</option>
+                </select>
+              </div>
+              
+              <div class="col-md-2">
+                <label for="assigned_to" class="form-label">Assigned To</label>
+                <select class="form-select" id="assigned_to" name="assigned_to">
+                  <option value="">All Support Staff</option>
+                  <option value="unassigned" {% if current_filters.assigned_to == 'unassigned' %}selected{% endif %}>Unassigned</option>
+                  {% for staff in support_staff %}
+                  <option value="{{ staff.user_id }}" {% if current_filters.assigned_to == staff.user_id|string %}selected{% endif %}>
+                    {{ staff.first_name }} {{ staff.last_name }} 
+                    ({{ staff.platform_role.replace('_', ' ').title() }})
+                  </option>
+                  {% endfor %}
+                </select>
+              </div>
+              
+              <div class="col-md-2">
+                <label for="username" class="form-label">Submitter</label>
+                <input type="text" class="form-control" id="username" name="username" 
+                       placeholder="Search by Submitter" value="{{ current_filters.username or '' }}">
+              </div>
+              
+              <div class="col-md-2 d-flex align-items-end">
+                <div class="d-flex gap-1">
+                  <button type="submit" class="btn btn-activeloop btn-extra-compact icon-bold" title="Search" aria-label="Search">
+                    <i class="bi bi-search"></i>
+                  </button>
+                  <a href="{{ url_for('support_manage') }}" class="btn btn-outline-activeloop btn-extra-compact icon-bold" title="Reset" aria-label="Reset">
+                    <i class="bi bi-arrow-counterclockwise"></i>
+                  </a>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active Filters Display -->
+      {% if current_filters %}
+      <div class="mb-3">
+        <small class="text-muted">Active filters:</small>
+        {% for key, value in current_filters.items() %}
+          {% if value %}
+          <span class="badge bg-info me-1">
+            {% if key == 'username' %}
+              Username: {{ value }}
+            {% else %}
+            {{ key.replace('_', ' ').title() }}: {{ value }}
+            {% endif %}
+            <a href="{{ url_for('support_manage') }}" 
+               class="text-white ms-1" style="text-decoration: none;">×</a>
+          </span>
+          {% endif %}
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- Requests Table -->
+      {% if requests %}
+        <div class="card">
+          <div class="card-body p-3">
+            <div class="table-responsive">
+              <table class="table table-hover mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th class="sortable-header">
+                      <a href="{{ url_for('support_manage', sort_by='request_id', sort_order=('desc' if current_sort.sort_by == 'request_id' and current_sort.sort_order == 'asc' else 'asc'), **current_filters) }}" 
+                         class="text-decoration-none text-dark">
+                        Request #
+                        {% if current_sort.sort_by == 'request_id' %}
+                          {% if current_sort.sort_order == 'asc' %}
+                            <i class="bi bi-arrow-up"></i>
+                          {% else %}
+                            <i class="bi bi-arrow-down"></i>
+                          {% endif %}
+                        {% endif %}
+                      </a>
+                    </th>
+                    <th class="sortable-header">
+                      <a href="{{ url_for('support_manage', sort_by='title', sort_order=('desc' if current_sort.sort_by == 'title' and current_sort.sort_order == 'asc' else 'asc'), **current_filters) }}" 
+                         class="text-decoration-none text-dark">
+                        Title
+                        {% if current_sort.sort_by == 'title' %}
+                          {% if current_sort.sort_order == 'asc' %}
+                            <i class="bi bi-arrow-up"></i>
+                          {% else %}
+                            <i class="bi bi-arrow-down"></i>
+                          {% endif %}
+                        {% endif %}
+                      </a>
+                    </th>
+                    <th class="sortable-header">
+                      <a href="{{ url_for('support_manage', sort_by='username', sort_order=('desc' if current_sort.sort_by == 'username' and current_sort.sort_order == 'asc' else 'asc'), **current_filters) }}" 
+                         class="text-decoration-none text-dark">
+                        Submitter
+                        {% if current_sort.sort_by == 'username' %}
+                          {% if current_sort.sort_order == 'asc' %}
+                            <i class="bi bi-arrow-up"></i>
+                          {% else %}
+                            <i class="bi bi-arrow-down"></i>
+                          {% endif %}
+                        {% endif %}
+                      </a>
+                    </th>
+                    <th class="sortable-header">
+                      <a href="{{ url_for('support_manage', sort_by='category', sort_order=('desc' if current_sort.sort_by == 'category' and current_sort.sort_order == 'asc' else 'asc'), **current_filters) }}" 
+                         class="text-decoration-none text-dark">
+                        Category
+                        {% if current_sort.sort_by == 'category' %}
+                          {% if current_sort.sort_order == 'asc' %}
+                            <i class="bi bi-arrow-up"></i>
+                          {% else %}
+                            <i class="bi bi-arrow-down"></i>
+                          {% endif %}
+                        {% endif %}
+                      </a>
+                    </th>
+                    <th class="sortable-header">
+                      <a href="{{ url_for('support_manage', sort_by='priority', sort_order=('desc' if current_sort.sort_by == 'priority' and current_sort.sort_order == 'asc' else 'asc'), **current_filters) }}" 
+                         class="text-decoration-none text-dark">
+                        Priority
+                        {% if current_sort.sort_by == 'priority' %}
+                          {% if current_sort.sort_order == 'asc' %}
+                            <i class="bi bi-arrow-up"></i>
+                          {% else %}
+                            <i class="bi bi-arrow-down"></i>
+                          {% endif %}
+                        {% endif %}
+                      </a>
+                    </th>
+                    <th class="sortable-header">
+                      <a href="{{ url_for('support_manage', sort_by='status', sort_order=('desc' if current_sort.sort_by == 'status' and current_sort.sort_order == 'asc' else 'asc'), **current_filters) }}" 
+                         class="text-decoration-none text-dark">
+                        Status
+                        {% if current_sort.sort_by == 'status' %}
+                          {% if current_sort.sort_order == 'asc' %}
+                            <i class="bi bi-arrow-up"></i>
+                          {% else %}
+                            <i class="bi bi-arrow-down"></i>
+                          {% endif %}
+                        {% endif %}
+                      </a>
+                    </th>
+                    <th class="sortable-header">
+                      <a href="{{ url_for('support_manage', sort_by='assigned_to', sort_order=('desc' if current_sort.sort_by == 'assigned_to' and current_sort.sort_order == 'asc' else 'asc'), **current_filters) }}" 
+                         class="text-decoration-none text-dark">
+                        Assigned To
+                        {% if current_sort.sort_by == 'assigned_to' %}
+                          {% if current_sort.sort_order == 'asc' %}
+                            <i class="bi bi-arrow-up"></i>
+                          {% else %}
+                            <i class="bi bi-arrow-down"></i>
+                          {% endif %}
+                        {% endif %}
+                      </a>
+                    </th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for request in requests %}
+                  <tr>
+                    <td>
+                      <span class="fw-bold text-primary">#{{ request.request_id }}</span>
+                    </td>
+                    <td>
+                      <a href="{{ url_for('view_help_request', request_id=request.request_id) }}" 
+                         class="text-decoration-none text-dark fw-bold title-link">
+                        <div class="text-truncate" style="max-width: 250px;" title="View details">
+                          {{ request.title }}
+                        </div>
+                      </a>
+                    </td>
+                    <td>
+                      <div>
+                        <a href="{{ url_for('admin_user_profile', user_id=request.user_id) }}" 
+                           class="text-decoration-none text-dark fw-bold title-link">
+                          {{ request.first_name }} {{ request.last_name }}
+                        </a>
+                        <small class="text-muted d-block">@{{ request.username }}</small>
+                      </div>
+                    </td>
+                    <td>
+                      <span class="badge bg-light text-dark">
+                        {{ request.category.replace('_', ' ').title() }}
+                      </span>
+                    </td>
+                    <td>
+                      {% if request.priority == 'urgent' %}
+                        <span class="badge bg-danger">{{ (request.priority or 'unknown').title() }}</span>
+                      {% elif request.priority == 'high' %}
+                        <span class="badge" style="background-color: #fd7e14; color: white;">{{ (request.priority or 'unknown').title() }}</span>
+                      {% else %}
+                        <span class="badge bg-light text-dark">{{ (request.priority or 'unknown').title() }}</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% if request.status == 'new' %}
+                        <span class="badge bg-primary">{{ (request.status or 'unknown').title() }}</span>
+                      {% elif request.status == 'assigned' %}
+                        <span class="badge bg-success">{{ (request.status or 'unknown').title() }}</span>
+                      {% elif request.status == 'blocked' %}
+                        <span class="badge bg-secondary">{{ (request.status or 'unknown').title() }}</span>
+                      {% elif request.status == 'solved' %}
+                        <span class="badge bg-light text-dark">{{ (request.status or 'unknown').title() }}</span>
+                      {% else %}
+                        <span class="badge bg-light text-dark">{{ (request.status or 'unknown').title() }}</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% if request.assigned_username %}
+                        <div>
+                          <div class="fw-bold">{{ request.assigned_first_name }} {{ request.assigned_last_name }}</div>
+                          <small class="text-muted">{{ request.assigned_username }}</small>
+                        </div>
+                      {% else %}
+                        <span class="text-muted">Unassigned</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      <div class="btn-group" role="group">
+                        {% if not request.assigned_to and request.status != 'solved' %}
+                            <!-- Manual assign button - only show if unassigned and not solved -->
+                            {% if request.priority == 'high' and session.get('platform_role') != 'super_admin' %}
+                              <!-- High priority - only super admin can assign -->
+                              <button type="button" class="btn btn-sm btn-secondary" disabled title="Only super administrators can assign high priority requests">
+                                <i class="bi bi-person-check me-1"></i>Assign
+                              </button>
+                            {% else %}
+                              <!-- Normal priority or super admin - show manual assign button -->
+                              <form method="POST" action="{{ url_for('take_request', request_id=request.request_id) }}" class="d-inline">
+                                <button type="submit" class="btn btn-sm btn-success" title="Assign to me">
+                                  <i class="bi bi-person-check me-1"></i>Assign
+                                </button>
+                              </form>
+                            {% endif %}
+                        {% elif request.assigned_to == session.user_id %}
+                          <!-- Unassign button - only show if assigned to current user -->
+                          <form method="POST" action="{{ url_for('drop_request', request_id=request.request_id) }}" class="d-inline">
+                            <button type="submit" class="btn btn-sm btn-danger" 
+                                    onclick="return confirm('Unassign yourself from this request?')" title="Unassign request">
+                              Unassign
+                            </button>
+                          </form>
+                        {% elif session.platform_role == 'super_admin' and request.status != 'solved' %}
+                          <!-- Super admin can unassign any request assigned by others (except solved) -->
+                          <form method="POST" action="{{ url_for('unassign_request', request_id=request.request_id) }}" class="d-inline">
+                            <button type="submit" class="btn btn-sm btn-warning" 
+                                    onclick="return confirm('Unassign this request from {{ request.assigned_first_name }} {{ request.assigned_last_name }}?')" title="Unassign request (Super Admin)">
+                              Unassign
+                            </button>
+                          </form>
+                        {% endif %}
+                      </div>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pagination -->
+        {% if pagination and pagination.pages > 1 %}
+        <div class="mt-4">
+          {% include 'components/pagination.html' %}
+        </div>
+        {% endif %}
+
+      {% else %}
+        <div class="text-center py-5">
+          <i class="bi bi-inbox text-muted" style="font-size: 4rem;"></i>
+          <h3 class="mt-3 text-muted">No Requests Found</h3>
+          <p class="text-muted">
+            {% if current_filters %}
+              No help requests match your current filters.
+            {% else %}
+              There are no help requests in the queue.
+            {% endif %}
+          </p>
+          {% if current_filters %}
+            <a href="{{ url_for('support_manage') }}" class="btn btn-outline-primary">
+              <i class="bi bi-x-circle me-1"></i>
+              Clear Filters
+            </a>
+          {% endif %}
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+
+{% endblock %}
+
+{% block scripts_extra %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Refresh and auto-assign functionality
+    const refreshAndAssignBtn = document.getElementById('refreshAndAssignBtn');
+    if (refreshAndAssignBtn) {
+        refreshAndAssignBtn.addEventListener('click', function() {
+            console.log('DEBUG: Refresh and auto-assign button clicked');
+            
+            const originalText = this.innerHTML;
+            
+            // Show loading state
+            this.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Processing...';
+            this.disabled = true;
+            
+            console.log('DEBUG: Making API call to /helpdesk/api/bulk-auto-assign');
+            // Make API call
+            fetch('/helpdesk/api/bulk-auto-assign', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => {
+                return response.json();
+            })
+            .then(data => {
+                console.log('DEBUG: API response:', data);
+                
+                if (data.success) {
+                    // Show success message
+                    showAlert('success', data.message);
+                    
+                    // Show failed assignments if any
+                    if (data.failed_assignments && data.failed_assignments.length > 0) {
+                        const failedList = data.failed_assignments.map(f => `Request #${f.request_id}: ${f.error}`).join('<br>');
+                        showAlert('warning', `Some assignments failed:<br>${failedList}`);
+                    }
+                    
+                    // Reload page to show updated assignments
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    // Show error message
+                    showAlert('danger', `Auto-assignment failed: ${data.error}`);
+                    // Restore button
+                    this.innerHTML = originalText;
+                    this.disabled = false;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('danger', 'An error occurred during auto-assignment');
+                // Restore button
+                this.innerHTML = originalText;
+                this.disabled = false;
+            });
+        });
+    }
+    
+    function loadWorkloadData() {
+        workloadContent.innerHTML = 
+            '<div class="text-center">' +
+                '<div class="spinner-border text-primary" role="status">' +
+                    '<span class="visually-hidden">Loading...</span>' +
+                '</div>' +
+                '<p class="mt-2">Loading workload data...</p>' +
+            '</div>';
+        
+        fetch('/helpdesk/api/workload-dashboard')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    renderWorkloadData(data.technicians);
+                } else {
+                    workloadContent.innerHTML = 
+                        '<div class="alert alert-danger">' +
+                            '<i class="bi bi-exclamation-triangle me-2"></i>' +
+                            'Failed to load workload data: ' + data.error +
+                        '</div>';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                workloadContent.innerHTML = 
+                    '<div class="alert alert-danger">' +
+                        '<i class="bi bi-exclamation-triangle me-2"></i>' +
+                        'An error occurred while loading workload data.' +
+                    '</div>';
+            });
+    }
+    
+    function renderWorkloadData(technicians) {
+        if (technicians.length === 0) {
+            workloadContent.innerHTML = 
+                '<div class="alert alert-info">' +
+                    '<i class="bi bi-info-circle me-2"></i>' +
+                    'No technicians found.' +
+                '</div>';
+            return;
+        }
+        
+        let html = '<div class="row">';
+        
+        technicians.forEach(tech => {
+            const workloadPercentage = Math.min((tech.workload_score / 10) * 100, 100);
+            const workloadColor = workloadPercentage < 30 ? 'success' : 
+                                 workloadPercentage < 70 ? 'warning' : 'danger';
+            
+            html += 
+                '<div class="col-md-6 mb-3">' +
+                    '<div class="card">' +
+                        '<div class="card-body">' +
+                            '<div class="d-flex justify-content-between align-items-start mb-2">' +
+                                '<h6 class="card-title mb-0">' +
+                                    '<i class="bi bi-person-circle me-1"></i>' +
+                                    tech.name +
+                                '</h6>' +
+                                '<span class="badge bg-' + (tech.role === 'super_admin' ? 'danger' : 'primary') + '">' +
+                                    tech.role.replace('_', ' ').toUpperCase() +
+                                '</span>' +
+                            '</div>' +
+                            
+                            '<div class="mb-2">' +
+                                '<div class="d-flex justify-content-between">' +
+                                    '<small class="text-muted">Workload Score</small>' +
+                                    '<small class="fw-bold">' + tech.workload_score + '</small>' +
+                                '</div>' +
+                                '<div class="progress" style="height: 8px;">' +
+                                    '<div class="progress-bar bg-' + workloadColor + '" ' +
+                                         'style="width: ' + workloadPercentage + '%"></div>' +
+                                '</div>' +
+                            '</div>' +
+                            
+                            '<div class="row text-center">' +
+                                '<div class="col-3">' +
+                                    '<div class="fw-bold text-primary">' + tech.total_assigned + '</div>' +
+                                    '<small class="text-muted">Total</small>' +
+                                '</div>' +
+                                '<div class="col-3">' +
+                                    '<div class="fw-bold text-success">' + tech.active_count + '</div>' +
+                                    '<small class="text-muted">Active</small>' +
+                                '</div>' +
+                                '<div class="col-3">' +
+                                    '<div class="fw-bold text-warning">' + tech.blocked_count + '</div>' +
+                                    '<small class="text-muted">Blocked</small>' +
+                                '</div>' +
+                                '<div class="col-3">' +
+                                    '<div class="fw-bold text-danger">' + tech.urgent_count + '</div>' +
+                                    '<small class="text-muted">Urgent</small>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>';
+        });
+        
+        html += '</div>';
+        workloadContent.innerHTML = html;
+    }
+    
+    function showAlert(type, message) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-' + type + ' alert-dismissible fade show';
+        alertDiv.innerHTML = message + 
+            '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
+        
+        // Insert at the top of the content
+        const container = document.querySelector('.container-fluid');
+        container.insertBefore(alertDiv, container.firstChild);
+        
+        // Auto-dismiss after 5 seconds
+        setTimeout(() => {
+            if (alertDiv.parentNode) {
+                alertDiv.remove();
+            }
+        }, 5000);
+    }
+});
+</script>
+{% endblock %}

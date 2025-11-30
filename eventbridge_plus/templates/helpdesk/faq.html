@@ -1,0 +1,537 @@
+{% extends "base.html" %}
+
+{% set active_page = 'faq' %}
+
+{% block title %}Frequently Asked Questions{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <!-- Hero Section -->
+      <div class="text-center mb-5">
+        <div class="mb-3">
+          <i class="bi bi-question-circle-fill" style="font-size: 4rem; color: #eca408ff;"></i>
+        </div>
+        <h1 class="display-4 fw-bolder mb-3" style="color: #eca408ff;">
+          Frequently Asked Questions
+        </h1>
+        <p class="lead text-muted mb-4">
+          Find quick answers to common questions about our platform
+        </p>
+        <div class="row justify-content-center">
+          <div class="col-md-8">
+            <div class="alert border-0 shadow-sm" style="background-color: #2e2d7aff; color: white;">
+              <i class="bi bi-lightbulb me-2"></i>
+              <strong>Can't find what you're looking for?</strong> 
+              Use the search box below or contact our support team.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Search Box -->
+      <div class="row mb-5">
+        <div class="col-md-8 mx-auto">
+          <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+              <div class="text-center mb-3">
+                <h5 class="text-muted mb-0">
+                  <i class="bi bi-search me-2"></i>
+                  Search FAQ
+                </h5>
+              </div>
+              <div class="input-group input-group-lg">
+                <span class="input-group-text text-white border-0" style="background-color: #eca408ff;">
+                  <i class="bi bi-search"></i>
+                </span>
+                <input type="text" class="form-control border-0" id="faqSearch" 
+                       placeholder="Type your question here..." 
+                       style="background-color: #f8f9fa;">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FAQ Categories -->
+      <div class="row">
+        <div class="col-12">
+          <!-- Account & Profile -->
+          <div class="card mb-4">
+            <div class="card-header">
+              <h5 class="mb-0">
+                <i class="bi bi-person-circle me-2"></i>
+                Account & Profile
+              </h5>
+            </div>
+            <div class="card-body">
+              <div class="accordion" id="accountAccordion">
+                <div class="accordion-item">
+                  <h2 class="accordion-header" id="account1">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#accountCollapse1">
+                      How do I update my profile information?
+                    </button>
+                  </h2>
+                  <div id="accountCollapse1" class="accordion-collapse collapse" data-bs-parent="#accountAccordion">
+                    <div class="accordion-body">
+                      To update your profile information:
+                      <ol>
+                        <li>Go to your profile page by clicking on your name in the top navigation</li>
+                        <li>Click the "Edit Profile" button</li>
+                        <li>Update the information you want to change</li>
+                        <li>Click "Save Changes" to confirm your updates</li>
+                      </ol>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="accordion-item">
+                  <h2 class="accordion-header" id="account2">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#accountCollapse2">
+                      I forgot my password. How can I reset it?
+                    </button>
+                  </h2>
+                  <div id="accountCollapse2" class="accordion-collapse collapse" data-bs-parent="#accountAccordion">
+                    <div class="accordion-body">
+                      If you've forgotten your password:
+                      <ol>
+                        <li>Send an email to eventbridge.help@gmail.com</li>
+                        <li>Include your username and email address in the email</li>
+                        <li>Our administrators will reset your password and send you the new credentials</li>
+                        <li>You can change your password after logging in with the temporary credentials</li>
+                      </ol>
+                      <strong>Note:</strong> Since you cannot access the helpdesk without logging in, please contact us directly via email for password reset requests.
+                    </div>
+                  </div>
+                </div>
+
+                <div class="accordion-item">
+                  <h2 class="accordion-header" id="account3">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#accountCollapse3">
+                      How do I change my email address?
+                    </button>
+                  </h2>
+                  <div id="accountCollapse3" class="accordion-collapse collapse" data-bs-parent="#accountAccordion">
+                    <div class="accordion-body">
+                      To change your email address:
+                      <ol>
+                        <li>Send an email to eventbridge.help@gmail.com</li>
+                        <li>Include your current username and the new email address you want to use</li>
+                        <li>Our administrators will update your email address</li>
+                        <li>You will receive a confirmation email at your new address</li>
+                      </ol>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="accordion-item">
+                  <h2 class="accordion-header" id="account4">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#accountCollapse4">
+                      How do I change my username?
+                    </button>
+                  </h2>
+                  <div id="accountCollapse4" class="accordion-collapse collapse" data-bs-parent="#accountAccordion">
+                    <div class="accordion-body">
+                      To change your username:
+                      <ol>
+                        <li>Send an email to eventbridge.help@gmail.com</li>
+                        <li>Include your current username and the new username you want to use</li>
+                        <li>Our administrators will check if the new username is available</li>
+                        <li>If available, your username will be updated</li>
+                        <li>You will receive a confirmation email about the change</li>
+                      </ol>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Events -->
+          <div class="card mb-4">
+            <div class="card-header">
+              <h5 class="mb-0">
+                <i class="bi bi-calendar-event me-2"></i>
+                Events
+              </h5>
+            </div>
+            <div class="card-body">
+              <div class="accordion" id="eventsAccordion">
+                <div class="accordion-item">
+                  <h2 class="accordion-header" id="events1">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#eventsCollapse1">
+                      How do I join an event?
+                    </button>
+                  </h2>
+                  <div id="eventsCollapse1" class="accordion-collapse collapse" data-bs-parent="#eventsAccordion">
+                    <div class="accordion-body">
+                      To join an event:
+                      <ol>
+                        <li>Browse available events on the Events page</li>
+                        <li>Click on an event you're interested in</li>
+                        <li>Click the "Join Event" button</li>
+                        <li>Fill out any required information</li>
+                        <li>Submit your application</li>
+                        <li>Wait for approval from the event organizer</li>
+                      </ol>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="accordion-item">
+                  <h2 class="accordion-header" id="events2">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#eventsCollapse2">
+                      Can I leave an event after joining?
+                    </button>
+                  </h2>
+                  <div id="eventsCollapse2" class="accordion-collapse collapse" data-bs-parent="#eventsAccordion">
+                    <div class="accordion-body">
+                      Yes, you can leave an event:
+                      <ol>
+                        <li>Go to "My Events" page</li>
+                        <li>Find the event you want to leave</li>
+                        <li>Click "Leave Event"</li>
+                        <li>Confirm your decision</li>
+                      </ol>
+                      <strong>Note:</strong> Some events may have specific withdrawal policies or deadlines.
+                    </div>
+                  </div>
+                </div>
+
+                <div class="accordion-item">
+                  <h2 class="accordion-header" id="events3">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#eventsCollapse3">
+                      How do I create my own event?
+                    </button>
+                  </h2>
+                  <div id="eventsCollapse3" class="accordion-collapse collapse" data-bs-parent="#eventsAccordion">
+                    <div class="accordion-body">
+                      To create an event:
+                      <ol>
+                        <li>Go to the Events page</li>
+                        <li>Click "Create New Event"</li>
+                        <li>Fill out the event details (title, description, date, location, etc.)</li>
+                        <li>Set event requirements and capacity</li>
+                        <li>Submit your event for review</li>
+                        <li>Wait for approval from administrators</li>
+                      </ol>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Groups -->
+          <div class="card mb-4">
+            <div class="card-header">
+              <h5 class="mb-0">
+                <i class="bi bi-people me-2"></i>
+                Groups
+              </h5>
+            </div>
+            <div class="card-body">
+              <div class="accordion" id="groupsAccordion">
+                <div class="accordion-item">
+                  <h2 class="accordion-header" id="groups1">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#groupsCollapse1">
+                      How do I join a group?
+                    </button>
+                  </h2>
+                  <div id="groupsCollapse1" class="accordion-collapse collapse" data-bs-parent="#groupsAccordion">
+                    <div class="accordion-body">
+                      To join a group:
+                      <ol>
+                        <li>Browse available groups on the Groups page</li>
+                        <li>Click on a group you're interested in</li>
+                        <li>For <strong>public groups:</strong> Click "Join Group" to join immediately</li>
+                        <li>For <strong>private groups:</strong> Click "Request to Join" and wait for approval from the group manager</li>
+                        <li>You'll receive a notification when your request is approved or denied (private groups only)</li>
+                      </ol>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="accordion-item">
+                  <h2 class="accordion-header" id="groups2">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#groupsCollapse2">
+                      How do I create a new group?
+                    </button>
+                  </h2>
+                  <div id="groupsCollapse2" class="accordion-collapse collapse" data-bs-parent="#groupsAccordion">
+                    <div class="accordion-body">
+                      To create a new group:
+                      <ol>
+                        <li>Go to the Groups page</li>
+                        <li>Click "Create New Group"</li>
+                        <li>Fill out group details (name, description, purpose, etc.)</li>
+                        <li>Set group settings and requirements</li>
+                        <li>Submit your group for review</li>
+                        <li>Wait for approval from administrators</li>
+                      </ol>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="accordion-item">
+                  <h2 class="accordion-header" id="groups3">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#groupsCollapse3">
+                      Can I leave a group after joining?
+                    </button>
+                  </h2>
+                  <div id="groupsCollapse3" class="accordion-collapse collapse" data-bs-parent="#groupsAccordion">
+                    <div class="accordion-body">
+                      Yes, you can leave a group at any time:
+                      <ol>
+                        <li>Go to "My Groups" page</li>
+                        <li>Find the group you want to leave</li>
+                        <li>Click "Leave Group"</li>
+                        <li>Confirm your decision</li>
+                      </ol>
+                      <strong>Important:</strong> When you leave a group, you will automatically be removed from all events that the group is participating in. Make sure to check if you have any upcoming events before leaving.
+                    </div>
+                  </div>
+                </div>
+
+                <div class="accordion-item">
+                  <h2 class="accordion-header" id="groups4">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#groupsCollapse4">
+                      Are there any limits on joining groups and events?
+                    </button>
+                  </h2>
+                  <div id="groupsCollapse4" class="accordion-collapse collapse" data-bs-parent="#groupsAccordion">
+                    <div class="accordion-body">
+                      Yes, there are some limitations:
+                      <ul>
+                        <li><strong>Event Participation:</strong> You can only participate in <strong>one event per day</strong></li>
+                        <li><strong>Group Capacity:</strong> Groups have member limits set by the group manager</li>
+                        <li><strong>Event Capacity:</strong> Events have participant limits set by the event organizer</li>
+                        <li><strong>Time Conflicts:</strong> You cannot join events that overlap in time</li>
+                      </ul>
+                      <strong>Note:</strong> These limits help ensure quality participation and prevent overbooking.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Technical Issues -->
+          <div class="card mb-4">
+            <div class="card-header">
+              <h5 class="mb-0">
+                <i class="bi bi-gear me-2"></i>
+                Technical Issues
+              </h5>
+            </div>
+            <div class="card-body">
+              <div class="accordion" id="technicalAccordion">
+                <div class="accordion-item">
+                  <h2 class="accordion-header" id="technical1">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#technicalCollapse1">
+                      The website is loading slowly. What should I do?
+                    </button>
+                  </h2>
+                  <div id="technicalCollapse1" class="accordion-collapse collapse" data-bs-parent="#technicalAccordion">
+                    <div class="accordion-body">
+                      If the website is loading slowly:
+                      <ol>
+                        <li>Check your internet connection</li>
+                        <li>Try refreshing the page</li>
+                        <li>Clear your browser cache and cookies</li>
+                        <li>Try using a different browser</li>
+                        <li>If the problem persists, contact support</li>
+                      </ol>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="accordion-item">
+                  <h2 class="accordion-header" id="technical2">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#technicalCollapse2">
+                      I'm getting an error message. What does it mean?
+                    </button>
+                  </h2>
+                  <div id="technicalCollapse2" class="accordion-collapse collapse" data-bs-parent="#technicalAccordion">
+                    <div class="accordion-body">
+                      Common error messages and solutions:
+                      <ul>
+                        <li><strong>"Access Denied":</strong> You don't have permission to access this page. Check your account status.</li>
+                        <li><strong>"Page Not Found":</strong> The page you're looking for doesn't exist. Check the URL.</li>
+                        <li><strong>"Session Expired":</strong> Please log in again to continue.</li>
+                        <li><strong>"Server Error":</strong> There's a temporary issue. Please try again later.</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="accordion-item">
+                  <h2 class="accordion-header" id="technical3">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#technicalCollapse3">
+                      How do I enable notifications?
+                    </button>
+                  </h2>
+                  <div id="technicalCollapse3" class="accordion-collapse collapse" data-bs-parent="#technicalAccordion">
+                    <div class="accordion-body">
+                      To enable notifications:
+                      <ol>
+                        <li>Go to your profile settings</li>
+                        <li>Find the "Notifications" section</li>
+                        <li>Enable the types of notifications you want to receive</li>
+                        <li>Make sure your browser allows notifications for this site</li>
+                        <li>Save your settings</li>
+                      </ol>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- General Help -->
+          <div class="card mb-4">
+            <div class="card-header">
+              <h5 class="mb-0">
+                <i class="bi bi-question-circle me-2"></i>
+                General Help
+              </h5>
+            </div>
+            <div class="card-body">
+              <div class="accordion" id="generalAccordion">
+                <div class="accordion-item">
+                  <h2 class="accordion-header" id="general1">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#generalCollapse1">
+                      How do I contact support?
+                    </button>
+                  </h2>
+                  <div id="generalCollapse1" class="accordion-collapse collapse" data-bs-parent="#generalAccordion">
+                    <div class="accordion-body">
+                      You can contact support in several ways:
+                      <ul>
+                        <li><strong>Help Request:</strong> Submit a help request through the Helpdesk system</li>
+                        <li><strong>Email:</strong> Send an email to eventbridge.help@gmail.com</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="accordion-item">
+                  <h2 class="accordion-header" id="general2">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#generalCollapse2">
+                      What are the platform rules and guidelines?
+                    </button>
+                  </h2>
+                  <div id="generalCollapse2" class="accordion-collapse collapse" data-bs-parent="#generalAccordion">
+                    <div class="accordion-body">
+                      Our platform rules include:
+                      <ul>
+                        <li>Be respectful to other users</li>
+                        <li>No spam or inappropriate content</li>
+                        <li>Follow event and group guidelines</li>
+                        <li>Report any violations to administrators</li>
+                        <li>Maintain a positive and supportive community environment</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="accordion-item">
+                  <h2 class="accordion-header" id="general3">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#generalCollapse3">
+                      How do I report a problem or violation?
+                    </button>
+                  </h2>
+                  <div id="generalCollapse3" class="accordion-collapse collapse" data-bs-parent="#generalAccordion">
+                    <div class="accordion-body">
+                      To report a problem or violation:
+                      <ol>
+                        <li>Go to the Helpdesk page</li>
+                        <li>Click "Submit Help Request"</li>
+                        <li>Select the appropriate category (e.g., "General Help" or "Account Problem")</li>
+                        <li>Provide detailed information about the issue</li>
+                        <li>Submit your report</li>
+                        <li>Our support team will review and respond to your report</li>
+                      </ol>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="accordion-item">
+                  <h2 class="accordion-header" id="general4">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#generalCollapse4">
+                      How do I delete my account?
+                    </button>
+                  </h2>
+                  <div id="generalCollapse4" class="accordion-collapse collapse" data-bs-parent="#generalAccordion">
+                    <div class="accordion-body">
+                      To delete your account:
+                      <ol>
+                        <li>Go to the Helpdesk page</li>
+                        <li>Click "Submit Help Request"</li>
+                        <li>Select "General Help" as the category</li>
+                        <li>In the title, write "Account Deletion Request"</li>
+                        <li>Provide your username and reason for account deletion</li>
+                        <li>Submit your request</li>
+                        <li>Our administrators will process your account deletion request</li>
+                      </ol>
+                      <strong>Note:</strong> Account deletion is permanent and cannot be undone. All your data, including event participation and group memberships, will be removed.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Still Need Help? -->
+          <div class="card">
+            <div class="card-body text-center p-5">
+              <div class="mb-4">
+                <i class="bi bi-headset" style="font-size: 3rem; color: #eca408ff;"></i>
+              </div>
+              <h3 class="card-title mb-3">
+                Still Need Help?
+              </h3>
+              <p class="card-text lead mb-4">
+                Can't find the answer you're looking for? Our support team is here to help!
+              </p>
+              {% if session.get('loggedin') %}
+              <div class="d-flex gap-3 justify-content-center flex-wrap">
+                <a href="{{ url_for('submit_help_request') }}" class="btn btn-lg" style="background-color: #eca408ff; border-color: #eca408ff; color: white;">
+                  <i class="bi bi-plus-circle me-2"></i>
+                  Submit Help Request
+                </a>
+              </div>
+              {% else %}
+              <div class="alert alert-warning">
+                <i class="bi bi-info-circle me-2"></i>
+                <strong>Need to submit a help request?</strong> Please <a href="{{ url_for('login') }}" class="alert-link">login</a> to access the helpdesk system.
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// FAQ Search functionality
+document.getElementById('faqSearch').addEventListener('input', function(e) {
+  const searchTerm = e.target.value.toLowerCase();
+  const accordionItems = document.querySelectorAll('.accordion-item');
+  
+  accordionItems.forEach(item => {
+    const question = item.querySelector('.accordion-button').textContent.toLowerCase();
+    const answer = item.querySelector('.accordion-body').textContent.toLowerCase();
+    
+    if (question.includes(searchTerm) || answer.includes(searchTerm)) {
+      item.style.display = 'block';
+    } else {
+      item.style.display = 'none';
+    }
+  });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,57 @@
+<!-- Pagination Component -->
+{% if pagination and pagination.pages > 1 %}
+<nav aria-label="Page navigation">
+    <div class="d-flex justify-content-between align-items-center">
+        <!-- Page info -->
+        <div class="text-muted">
+            <i class="bi bi-info-circle"></i>
+            Showing {{ pagination.start_index }} to {{ pagination.end_index }} of {{ pagination.total }} results
+        </div>
+        
+        <!-- Pagination controls -->
+        <ul class="pagination mb-0" style="font-size: 1rem;">
+            <!-- Previous button -->
+            {% if pagination.has_prev %}
+            <li class="page-item">
+                <a class="page-link" href="{{ pagination.page_urls[pagination.prev_num] }}" aria-label="Previous">
+                    <i class="bi bi-chevron-left"></i>
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link" aria-label="Previous">
+                    <i class="bi bi-chevron-left"></i>
+                </span>
+            </li>
+            {% endif %}
+            
+            <!-- Page numbers -->
+            {% set page_links = pagination_links or [] %}
+            {% for link in page_links %}
+            <li class="page-item{% if link.is_current %} active{% endif %}">
+                {% if link.is_current %}
+                <span class="page-link" style="background-color: #28a745; border-color: #28a745; color: white; font-weight: bold;">{{ link.num }}</span>
+                {% else %}
+                <a class="page-link" href="{{ link.url }}" style="color: #28a745; border-color: #dee2e6;">{{ link.num }}</a>
+                {% endif %}
+            </li>
+            {% endfor %}
+            
+            <!-- Next button -->
+            {% if pagination.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="{{ pagination.page_urls[pagination.next_num] }}" aria-label="Next">
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link" aria-label="Next">
+                    <i class="bi bi-chevron-right"></i>
+                </span>
+            </li>
+            {% endif %}
+        </ul>
+    </div>
+</nav>
+{% endif %}

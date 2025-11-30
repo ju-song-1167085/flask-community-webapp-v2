@@ -1,0 +1,529 @@
+{% extends "base.html" %}
+{% block title %}Event Detail{% endblock %}
+
+{% block content %}
+<main id="event-detail" class="container py-4">
+  {% if event %}
+    <!-- Event Title and Group Info -->
+    <h1 class="mb-2">{{ event.event_title }}</h1>
+    <p class="text-muted mb-3">
+      <a href="{{ url_for('group_detail', group_id=event.group_id) }}" class="text-decoration-none">
+        {{ event.group_name }}
+      </a>
+      {% if event.location %}
+        • {{ event.location }}
+      {% endif %}
+    </p>
+
+    <!-- Event Date and Time using NZ date format -->
+    <div class="mb-3">
+      <i class="bi bi-calendar-event"></i>
+      <span class="date">{{ event.event_date|nz_date }}</span>
+      <span class="ms-2"><i class="bi bi-clock"></i> <span class="time">{{ event.event_time|nz_time12_upper }}</span></span>
+    </div>
+
+    <!-- Event Stats Badges + Back Button -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div>
+        <span class="badge bg-light text-dark border me-2">{{ event.event_type }}</span>
+        <span class="badge bg-light text-dark border me-2">Capacity: {{ event.max_participants }}</span>
+        <span class="badge bg-light text-dark border me-2">Registered: {{ event.registered_count }}</span>
+        {% if event.is_full %}
+          <span class="badge bg-danger">Full</span>
+        {% else %}
+          <span class="badge bg-success">{{ event.spots_available }} spots available</span>
+        {% endif %}
+      </div>
+
+      <button onclick="window.history.back()" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>Back
+      </button>
+    </div>
+
+
+    <!-- Event Description Card -->
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5 class="mb-0">Event Details</h5>
+      </div>
+      <div class="card-body">
+        <p class="mb-0">{{ event.description or 'No description available.' }}</p>
+      </div>
+    </div>
+
+
+
+    <!-- Registration Actions Section -->
+    <div class="mb-4">
+      {% if session.get('loggedin') %}
+        <!-- User is logged in -->
+        {% if user_registration %}
+          <!-- User already registered for this event -->
+          {% if user_registration.participation_status == 'registered' %}
+            {% if user_registration.event_role == 'volunteer' %}
+              <!-- Volunteer status messages -->
+              {% if user_registration.volunteer_status == 'assigned' %}
+                <div class="alert alert-warning d-flex justify-content-between align-items-center">
+                  <span>
+                    <i class="bi bi-clock me-2"></i>
+                    Your volunteer application is <strong>pending approval</strong>
+                  </span>
+                  <form method="POST" action="{{ url_for('cancel_volunteer', event_id=event.event_id) }}" style="display:inline;">
+                    <button type="submit" class="btn btn-outline-danger"
+                            onclick="return confirm('Are you sure you want to cancel your volunteer application?')">
+                      <i class="bi bi-x-circle me-1"></i>Cancel Application
+                    </button>
+                  </form>
+                </div>
+              {% elif user_registration.volunteer_status == 'confirmed' %}
+                <div class="alert alert-success d-flex justify-content-between align-items-center">
+                  <span>
+                    <i class="bi bi-check-circle me-2"></i>
+                    You are <strong>confirmed as a Volunteer</strong> for this event
+                  </span>
+                  <form method="POST" action="{{ url_for('cancel_volunteer', event_id=event.event_id) }}" style="display:inline;">
+                    <button type="submit" class="btn btn-outline-danger"
+                            onclick="return confirm('Are you sure you want to cancel your volunteer role?')">
+                      <i class="bi bi-x-circle me-1"></i>Cancel Volunteer
+                    </button>
+                  </form>
+                </div>
+              {% elif user_registration.volunteer_status == 'cancelled' %}
+                <div class="alert alert-danger d-flex justify-content-between align-items-center">
+                  <span>
+                    <i class="bi bi-x-circle me-2"></i>
+                    Your volunteer application was <strong>rejected</strong>
+                  </span>
+                  <a href="{{ url_for('volunteer_for_event', event_id=event.event_id) }}" 
+                     class="btn btn-warning btn-sm">
+                    <i class="bi bi-heart-fill me-1"></i>Reapply
+                  </a>
+                </div>
+              {% else %}
+                <div class="alert alert-secondary">
+                  <i class="bi bi-info-circle me-2"></i>
+                  Volunteer status: <strong>{{ user_registration.volunteer_status|title }}</strong>
+                </div>
+              {% endif %}
+            {% else %}
+              <!-- Participant status message -->
+              <div class="alert alert-success d-flex justify-content-between align-items-center">
+                <span>
+                  <i class="bi bi-check-circle me-2"></i>
+                  You are registered for this event as a 
+                  <strong>{{ user_registration.event_role|title }}</strong>
+                </span>
+                <a href="{{ url_for('unregister_from_event', event_id=event.event_id) }}" 
+                   class="btn btn-outline-danger"
+                   onclick="return confirm('Are you sure you want to unregister from this event?')">
+                  <i class="bi bi-x-circle me-1"></i>Unregister
+                </a>
+              </div>
+            {% endif %}
+            
+          {% elif user_registration.participation_status == 'attended' %}
+            <!-- User already attended this event -->
+            <div class="alert alert-info">
+              <i class="bi bi-check-circle-fill me-2"></i>You attended this event
+            </div>
+            
+          {% else %}
+            <!-- Show current participation status -->
+            <div class="alert alert-secondary">
+              <i class="bi bi-info-circle me-2"></i>Status: {{ user_registration.participation_status|title }}
+            </div>
+          {% endif %}
+          
+        {% else %}
+          <!-- User not registered yet - show registration options -->
+          {% if event.is_full %}
+            <!-- Event is full - show warning -->
+            <div class="alert alert-warning">
+              <i class="bi bi-exclamation-triangle me-2"></i>This event is full.
+            </div>
+            
+          {% else %}
+            <!-- Event has space - show registration buttons -->
+            <div class="d-flex gap-2 flex-wrap">
+              <!-- Register as Participant button -->
+              <a href="{{ url_for('register_for_event', event_id=event.event_id) }}" 
+                 class="btn btn-primary btn-lg">
+                <i class="bi bi-plus-circle me-2"></i>Register as Participant
+              </a>
+              
+              <!-- Apply/Join as Volunteer button -->
+              {% if user_group_role == 'volunteer' %}
+                <!-- Group volunteer - auto-approved volunteer registration -->
+                <a href="{{ url_for('volunteer_for_event', event_id=event.event_id) }}" 
+                   class="btn btn-warning btn-lg">
+                  <i class="bi bi-heart-fill me-2"></i>Join as Volunteer
+                </a>
+              {% else %}
+                <!-- Regular member - requires approval -->
+                <a href="{{ url_for('volunteer_for_event', event_id=event.event_id) }}" 
+                   class="btn btn-warning btn-lg">
+                  <i class="bi bi-heart-fill me-2"></i>Apply as Volunteer
+                </a>
+              {% endif %}
+            </div>
+          {% endif %}
+        {% endif %}
+        
+      {% else %}
+        <!-- User not logged in - prompt to login -->
+        <div class="alert alert-info">
+          <i class="bi bi-info-circle me-2"></i>
+          Please sign in to register for this event or apply as a volunteer.
+        </div>
+        <a href="{{ url_for('login', next=url_for('event_detail', event_id=event.event_id)) }}"
+           class="btn btn-primary btn-lg">
+          <i class="bi bi-box-arrow-in-right me-2"></i>Sign in to Register
+        </a>
+      {% endif %}
+    </div>
+
+    <!-- Participant List Section (Manager/Admin Only) -->
+    {% if can_manage_event and participants %}
+    <!-- Show participant list with data -->
+    <div class="card mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+          <i class="bi bi-people"></i> Registered Participants ({{ participants|length }})
+        </h5>
+        <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#addMemberModal">
+          <i class="bi bi-person-plus me-2"></i>Add Member
+        </button>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th>Participant</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Registered Date</th>
+                <th>Volunteer Role</th>
+                <th class="text-end">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for participant in participants %}
+              <tr>
+                <!-- Participant name and avatar -->
+                <td>
+                  <div class="d-flex align-items-center">
+                    {% if participant.user_image %}
+                    <img src="{{ url_for('static', filename=participant.user_image) }}" 
+                         class="rounded-circle me-2" width="32" height="32">
+                    {% else %}
+                    <i class="bi bi-person-circle fs-4 me-2"></i>
+                    {% endif %}
+                    <div>
+                      <strong>{{ participant.first_name }} {{ participant.last_name }}</strong>
+                      <br>
+                      <small class="text-muted">@{{ participant.username }}</small>
+                    </div>
+                  </div>
+                </td>
+                <!-- Role badge (Participant or Volunteer) -->
+                <td>
+                  {% if participant.event_role == 'volunteer' %}
+                    <span class="badge bg-warning">Volunteer</span>
+                    {% if participant.volunteer_status %}
+                      <br><small class="text-muted">{{ participant.volunteer_status|title }}</small>
+                    {% endif %}
+                  {% else %}
+                    <span class="badge bg-success">Participant</span>
+                  {% endif %}
+                </td>
+                <!-- Participation status badge -->
+                <td>
+                  <span class="badge 
+                    {% if participant.participation_status == 'attended' %}bg-success
+                    {% elif participant.participation_status == 'registered' %}bg-primary
+                    {% else %}bg-secondary{% endif %}">
+                    {{ participant.participation_status|title }}
+                  </span>
+                </td>
+                <!-- Registration timestamp using NZ date format -->
+                <td>
+                  <small>{{ participant.registration_date|nz_date }} {{ participant.registration_date|nz_time12_upper }}</small>
+                </td>
+                <!-- Volunteer Role column -->
+                <td style="width: 300px;">
+                  {% if participant.event_role == 'volunteer' and can_manage_event %}
+                    <div class="d-flex align-items-center gap-1">
+                      <select class="form-select form-select-sm" style="width: 220px;" 
+                              id="role-select-{{ participant.membership_id }}"
+                              data-current-role="{{ participant.responsibility or '' }}">
+                        <option value="">Select Role</option>
+                        <option value="event_setup" {% if participant.responsibility == 'event_setup' %}selected{% endif %}>Event Setup</option>
+                        <option value="safety_medical" {% if participant.responsibility == 'safety_medical' %}selected{% endif %}>Safety/Medical</option>
+                        <option value="participant_support" {% if participant.responsibility == 'participant_support' %}selected{% endif %}>Participant Support</option>
+                        <option value="community_outreach" {% if participant.responsibility == 'community_outreach' %}selected{% endif %}>Community Outreach</option>
+                        <option value="photography" {% if participant.responsibility == 'photography' %}selected{% endif %}>Photography</option>
+                      </select>
+                      <button class="btn btn-sm btn-outline-primary" 
+                              onclick="updateVolunteerRole({{ participant.membership_id }})"
+                              title="Update Role">
+                        <i class="bi bi-check-circle"></i>
+                      </button>
+                    </div>
+                  {% elif participant.event_role == 'volunteer' and participant.responsibility %}
+                    <small class="text-muted">{{ participant.responsibility.replace('_', ' ')|title }}</small>
+                  {% else %}
+                    <span class="text-muted">—</span>
+                  {% endif %}
+                </td>
+                <!-- Actions column -->
+                <td class="text-end">
+                  <button class="btn btn-sm btn-outline-danger" 
+                          onclick="removeParticipant({{ participant.membership_id }}, '{{ participant.username|e }}', '{{ participant.event_role }}')"
+                          title="Remove from event">
+                    <i class="bi bi-dash-circle"></i>
+                  </button>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    {% elif can_manage_event %}
+    <!-- Show empty state if no participants yet -->
+    <div class="card mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+          <i class="bi bi-people"></i> Registered Participants
+        </h5>
+        <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#addMemberModal">
+          <i class="bi bi-person-plus me-2"></i>Add Member
+        </button>
+      </div>
+      <div class="card-body text-center text-muted py-4">
+        <i class="bi bi-people" style="font-size: 2rem;"></i>
+        <p class="mt-2 mb-0">No participants registered yet.</p>
+      </div>
+    </div>
+    {% endif %}
+    
+  {% else %}
+    <!-- Event not found error -->
+    <div class="alert alert-warning">Event not found.</div>
+    <div class="mb-3">
+      <button onclick="window.history.back()" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>Back
+      </button>
+    </div>
+  {% endif %}
+</main>
+
+{% if can_manage_event %}
+<!-- Add Member Modal -->
+<div class="modal fade" id="addMemberModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-person-plus"></i> Add New Member
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('add_event_member') }}">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label for="userSearch" class="form-label">Search Users</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="userSearch" 
+                                       placeholder="Type username, name, or email..." 
+                                       onkeyup="searchUsers()">
+                                <button class="btn btn-outline-secondary" type="button" onclick="searchUsers()">
+                                    <i class="bi bi-search"></i>
+                                </button>
+                            </div>
+                            <div id="userSearchResults" class="mt-2" style="max-height: 200px; overflow-y: auto;">
+                                <!-- Search results will be populated here -->
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="memberRole" class="form-label">Member Role</label>
+                            <select class="form-select" id="memberRole" name="member_role" required>
+                                <option value="participant">Participant</option>
+                                <option value="volunteer">Volunteer</option>
+                            </select>
+                            <small class="text-muted d-block mt-2">Select the role for this member</small>
+                            <div class="mt-4">
+                                <div id="selectedUserInfo" class="alert alert-info" style="display: none;">
+                                    <strong>Selected User:</strong> <span id="selectedUserName"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <input type="hidden" id="selectedUserId" name="user_id">
+                    <input type="hidden" name="event_id" value="{{ event.event_id }}">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success" id="addMemberBtn" disabled>
+                        <i class="bi bi-person-plus me-1"></i>Add Member
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts_extra %}
+<script>
+function removeParticipant(membershipId, username, eventRole) {
+    const roleText = eventRole === 'volunteer' ? 'volunteer' : 'participant';
+    if (confirm(`Are you sure you want to remove ${username} from this event as a ${roleText}?`)) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '{{ url_for("remove_event_participant", event_id=event.event_id) }}';
+        
+        const membershipIdInput = document.createElement('input');
+        membershipIdInput.type = 'hidden';
+        membershipIdInput.name = 'membership_id';
+        membershipIdInput.value = membershipId;
+        
+        form.appendChild(membershipIdInput);
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+function updateVolunteerRole(membershipId) {
+    const selectElement = document.getElementById(`role-select-${membershipId}`);
+    const newRole = selectElement.value;
+    
+    if (!newRole) {
+        alert('Please select a role first.');
+        return;
+    }
+    
+    fetch('{{ url_for("update_volunteer_role", event_id=event.event_id) }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            membership_id: membershipId,
+            responsibility: newRole
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Show success message
+            const toast = document.createElement('div');
+            toast.className = 'toast align-items-center text-white bg-success border-0';
+            toast.setAttribute('role', 'alert');
+            toast.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">
+                        Volunteer role updated successfully!
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            `;
+            document.body.appendChild(toast);
+            const bsToast = new bootstrap.Toast(toast);
+            bsToast.show();
+            
+            // Remove toast after it's hidden
+            toast.addEventListener('hidden.bs.toast', () => {
+                document.body.removeChild(toast);
+            });
+            
+            // Reload page to show updated role
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+        } else {
+            alert('Error updating volunteer role: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error updating volunteer role. Please try again.');
+    });
+}
+
+{% if can_manage_event %}
+function searchUsers() {
+    const query = document.getElementById('userSearch').value.trim();
+    const resultsDiv = document.getElementById('userSearchResults');
+    
+    if (query.length < 2) {
+        resultsDiv.innerHTML = '';
+        return;
+    }
+    
+    fetch(`/search-users?q=${encodeURIComponent(query)}`)
+        .then(response => response.json())
+        .then(data => {
+            resultsDiv.innerHTML = '';
+            
+            if (data.users && data.users.length > 0) {
+                data.users.forEach(user => {
+                    const userDiv = document.createElement('div');
+                    userDiv.className = 'border rounded p-2 mb-2 cursor-pointer';
+                    userDiv.style.cursor = 'pointer';
+                    userDiv.innerHTML = `
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>${user.username}</strong><br>
+                                <small class="text-muted">${user.first_name} ${user.last_name}</small>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-primary" 
+                                    onclick="selectUser(${user.user_id}, '${user.username}', '${user.first_name}', '${user.last_name}')">
+                                Select
+                            </button>
+                        </div>
+                    `;
+                    resultsDiv.appendChild(userDiv);
+                });
+            } else {
+                resultsDiv.innerHTML = '<div class="text-muted">No users found</div>';
+            }
+        })
+        .catch(error => {
+            console.error('Error searching users:', error);
+            resultsDiv.innerHTML = '<div class="text-danger">Error searching users</div>';
+        });
+}
+
+function selectUser(userId, username, firstName, lastName) {
+    document.getElementById('selectedUserId').value = userId;
+    document.getElementById('selectedUserName').textContent = `${username} (${firstName} ${lastName})`;
+    document.getElementById('selectedUserInfo').style.display = 'block';
+    document.getElementById('addMemberBtn').disabled = false;
+    
+    // Clear search
+    document.getElementById('userSearch').value = '';
+    document.getElementById('userSearchResults').innerHTML = '';
+}
+
+// Enable/disable add button based on form completion
+document.addEventListener('DOMContentLoaded', function() {
+    const memberRoleSelect = document.getElementById('memberRole');
+    if (memberRoleSelect) {
+        memberRoleSelect.addEventListener('change', function() {
+            const userId = document.getElementById('selectedUserId').value;
+            const addBtn = document.getElementById('addMemberBtn');
+            
+            addBtn.disabled = !userId;
+        });
+    }
+});
+{% endif %}
+</script>
+{% endblock %}

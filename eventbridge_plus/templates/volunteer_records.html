@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block title %}My Records{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Page Header -->
+    <div class="mb-4">
+        <h1 class="page-title">
+            <i class="bi bi-heart-fill text-accent me-2"></i>
+            My Volunteer Records
+        </h1>
+        <p class="subtle">Track your volunteer contributions to the community</p>
+    </div>
+    
+    <!-- Statistics Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4 col-sm-6">
+            <div class="kpi kpi-static">
+                <i class="bi bi-clock-history"></i>
+                <h3>{{ "%.1f"|format(stats.total_hours) }}</h3>
+                <small>Total Hours</small>
+            </div>
+        </div>
+        
+        <div class="col-md-4 col-sm-6">
+            <div class="kpi kpi-static">
+                <i class="bi bi-check-circle text-success"></i>
+                <h3>{{ stats.completed_activities }}</h3>
+                <small>Completed</small>
+            </div>
+        </div>
+        
+        <div class="col-md-4 col-sm-6">
+            <div class="kpi kpi-static">
+                <i class="bi bi-x-circle text-danger"></i>
+                <h3>{{ stats.cancelled_activities }}</h3>
+                <small>Cancelled</small>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Volunteer Activities List -->
+    <div class="card">
+        <div class="card-header">
+            <h4 class="mb-0">Volunteer Activity History</h4>
+        </div>
+        <div class="card-body">
+            {% if volunteer_activities %}
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Event</th>
+                                <th>Date & Time</th>
+                                <th>Location</th>
+                                <th>Group</th>
+                                <th>Status</th>
+                                <th>Applied</th>
+                                <th>Role</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {% for activity in volunteer_activities %}
+                            <tr>
+                                <!-- Event Info -->
+                                <td>
+                                    <a href="{{ url_for('event_detail', event_id=activity.event_id) }}" 
+                                       class="text-decoration-none text-brand fw-semibold">
+                                        {{ activity.event_title }}
+                                    </a>
+                                    <br>
+                                    <span class="badge badge-ok">{{ activity.event_type }}</span>
+                                </td>
+                                
+                                <!-- Date & Time -->
+                                <td>
+                                    <i class="bi bi-calendar me-1"></i>{{ activity.event_date|nz_date }}
+                                    <br>
+                                    <i class="bi bi-clock me-1"></i>{{ activity.event_time|nz_time12_upper }}
+                                </td>
+                                
+                                <!-- Location -->
+                                <td>
+                                    <i class="bi bi-geo-alt me-1"></i>{{ activity.location }}
+                                </td>
+                                
+                                <!-- Group -->
+                                <td>
+                                    <a href="{{ url_for('group_detail', group_id=activity.group_id) }}" 
+                                       class="text-decoration-none subtle">
+                                        <i class="bi bi-people me-1"></i>{{ activity.group_name }}
+                                    </a>
+                                </td>
+                                
+                                <!-- Status -->
+                                <td>
+                                    {% if activity.participation_status == 'attended' %}
+                                        <span class="badge bg-success">Completed</span>
+                                    {% elif activity.participation_status == 'cancelled' %}
+                                        <span class="badge bg-secondary">Cancelled</span>
+                                    {% elif activity.participation_status == 'registered' %}
+                                        <span class="badge bg-info">Registered</span>
+                                    {% elif activity.participation_status == 'no_show' %}
+                                        <span class="badge bg-danger">No Show</span>
+                                    {% else %}
+                                        <span class="badge bg-light text-dark">{{ activity.participation_status|title }}</span>
+                                    {% endif %}
+                                </td>
+                                
+                                <!-- Applied Date -->
+                                <td>
+                                    <small class="subtle">{{ activity.registration_date|nz_date }}</small>
+                                </td>
+                                
+                                <!-- Role -->
+                                <td>
+                                    {% if activity.responsibility %}
+                                        <span class="badge bg-primary">{{ activity.responsibility|title|replace('_', ' ') }}</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">General</span>
+                                    {% endif %}
+                                    {% if activity.participation_status == 'attended' and activity.volunteer_hours %}
+                                        <br><small class="text-muted">{{ "%.1f"|format(activity.volunteer_hours) }}h</small>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="bi bi-heart fs-1 text-muted mb-3 d-block"></i>
+                    <h5 class="text-muted">No Volunteer Activities Yet</h5>
+                    <p class="subtle">
+                        You haven't volunteered for any events yet. Browse events to find volunteer opportunities!
+                    </p>
+                    <a href="{{ url_for('explore', tab='events') }}" class="btn btn-activeloop mt-2">
+                        <i class="bi bi-search me-1"></i>Find Volunteer Opportunities
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Action Buttons -->
+    <div class="mt-4 d-flex gap-2 flex-wrap">
+        <button type="button" class="btn btn-outline-activeloop" onclick="window.history.back()">
+            <i class="bi bi-arrow-left me-1"></i>Back
+        </button>
+        <a href="{{ url_for('explore', tab='events') }}" class="btn btn-activeloop">
+            <i class="bi bi-search me-1"></i>Find More Opportunities
+        </a>
+    </div>
+</div>
+{% endblock %}

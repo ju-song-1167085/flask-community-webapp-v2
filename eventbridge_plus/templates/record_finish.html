@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+{% block title %}Record Finish (Manual){% endblock %}
+
+{% block content %}
+<div class="container py-3">
+  <h3 class="mb-3">Record Finish (Manual)</h3>
+
+  <p class="text-muted mb-1">Event ID: {{ event_id }}</p>
+  {% if event_title %}<p class="text-muted mb-1">Event: {{ event_title }}</p>{% endif %}
+  <p class="text-muted">Event Start Time: {{ event_start_text }}</p>
+
+  {% if allow_manual is defined and not allow_manual %}
+    <div class="alert alert-warning mb-3">
+      Manual finish entry is closed for this event. Please use
+    <a class="btn btn-outline-secondary" href="{{ url_for('results_import_form', event_id=event_id) }}">
+      CSV Import
+    </a>
+    </div>
+  {% endif %}
+
+  <div class="row g-4">
+    <div class="col-lg-6">
+      <form method="post" class="card p-3 shadow-sm">
+        <label class="form-label fw-semibold">Membership ID</label>
+        <input
+          type="text"
+          name="membership_id"
+          class="form-control mb-3"
+          placeholder="e.g. 2048"
+          required
+        />
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn btn-primary">Record Now</button>
+          <button type="button" class="btn btn-secondary" onclick="window.history.back()">Back</button>
+
+          <a class="btn btn-outline-secondary" href="{{ url_for('results_import_form', event_id=event_id) }}">
+            CSV Import
+          </a>
+        </div>
+      </form>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title mb-3">Participants (This Event)</h5>
+          {% if participants %}
+            <div class="table-responsive">
+              <table class="table table-sm align-middle">
+                <thead>
+                  <tr>
+                    <th scope="col">Membership ID</th>
+                    <th scope="col">Name</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for p in participants %}
+                  <tr>
+                    <td class="font-monospace">{{ p.membership_id }}</td>
+                    <td>{{ p.full_name }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <p class="text-muted mb-0">No participants found for this event.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- New: Recent check-in records -->
+  <div class="row g-4 mt-2">
+    <div class="col-12">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title mb-3">
+            Recent Records
+            <span class="badge bg-light text-muted ms-2">{{ recent_records|length }}</span>
+          </h5>
+
+          {% if recent_records and recent_records|length > 0 %}
+            <div class="table-responsive">
+              <table class="table table-sm align-middle">
+                <thead>
+                  <tr>
+                    <th>Membership ID</th>
+                    <th>Name</th>
+                    <th>Start</th>
+                    <th>Finish</th>
+                    <th>Elapsed</th>
+                    <!-- <th>Recorded By</th> -->
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for r in recent_records %}
+                  <tr>
+                    <td class="font-monospace">{{ r.membership_id }}</td>
+                    <td>{{ r.full_name }}</td>
+                    <td>{{ r.start_dt_fmt if r.start_dt_fmt else '-' }}</td>
+                    <td>{{ r.finish_dt_fmt if r.finish_dt_fmt else '-' }}</td>
+                    <td>
+                      {% if r.elapsed_hms %}
+                        {{ r.elapsed_hms }}
+                      {% else %}
+                        -
+                      {% endif %}
+                    </td>
+                    <td>{{ r.recorded_at }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <p class="text-muted mb-0">No recent records.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

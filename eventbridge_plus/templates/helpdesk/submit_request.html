@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% set active_page = 'helpdesk_home' %}
+
+{% block title %}Submit Help Request{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="d-flex align-items-center mb-4">
+        <a href="{{ url_for('helpdesk_home') }}" class="btn btn-outline-secondary me-3">
+          <i class="bi bi-arrow-left"></i>
+        </a>
+        <h1 class="h3 mb-0">
+          <i class="bi bi-plus-circle text-primary me-2"></i>
+          Submit Help Request
+        </h1>
+      </div>
+
+      <div class="card">
+        <div class="card-body">
+          <form method="POST">
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="category" class="form-label">
+                  Category <span class="text-danger">*</span>
+                </label>
+                <select class="form-select" id="category" name="category" required>
+                  <option value="">Select a category</option>
+                  <option value="technical_issue">Technical Issue</option>
+                  <option value="account_problem">Account Problem</option>
+                  <option value="event_inquiry">Event Inquiry</option>
+                  <option value="group_management">Group Management</option>
+                  <option value="rejection_inquiry">Rejection Inquiry</option>
+                  <option value="general_help">General Help</option>
+                </select>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label for="priority" class="form-label">Priority</label>
+                <select class="form-select" id="priority" name="priority" disabled>
+                  <option value="medium" selected>Medium (Default)</option>
+                </select>
+                <div class="form-text">
+                  <small class="text-muted">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Priority will be assessed by our support team based on the nature of your request.
+                  </small>
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="title" class="form-label">
+                Title <span class="text-danger">*</span>
+              </label>
+              <input type="text" class="form-control" id="title" name="title" 
+                     placeholder="Brief description of your issue" 
+                     minlength="5" maxlength="200" required>
+              <div class="form-text">5-200 characters</div>
+            </div>
+
+            <div class="mb-4">
+              <label for="description" class="form-label">
+                Description <span class="text-danger">*</span>
+              </label>
+              <textarea class="form-control" id="description" name="description" 
+                        rows="6" placeholder="Please provide detailed information about your issue..." 
+                        minlength="10" maxlength="2000" required></textarea>
+              <div class="form-text">
+                Please include as much detail as possible to help us assist you better (10-2000 characters).
+              </div>
+            </div>
+
+            <div class="d-flex justify-content-between">
+              <a href="{{ url_for('helpdesk_home') }}" class="btn btn-outline-secondary">
+                Cancel
+              </a>
+              <button type="submit" class="btn btn-activeloop btn-compact">
+                <i class="bi bi-send me-1"></i>
+                Submit Request
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Help Information -->
+      <div class="card mt-4">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-info-circle text-info me-2"></i>
+            Need Help Choosing?
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <h6 class="text-primary">Technical Issue</h6>
+              <p class="small text-muted">Problems with website functionality, login issues, or technical errors.</p>
+              
+              <h6 class="text-primary">Account Problem</h6>
+              <p class="small text-muted">Issues with your user account, profile, or account settings.</p>
+              
+              <h6 class="text-primary">Event Inquiry</h6>
+              <p class="small text-muted">Questions about events, registration, or event-related issues.</p>
+            </div>
+            <div class="col-md-6">
+              <h6 class="text-primary">Group Management</h6>
+              <p class="small text-muted">Issues with group creation, membership, or group management features.</p>
+              
+              <h6 class="text-primary">Rejection Inquiry</h6>
+              <p class="small text-muted">Questions about why your group or application was rejected.</p>
+              
+              <h6 class="text-primary">General Help</h6>
+              <p class="small text-muted">General questions or other issues not covered above.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

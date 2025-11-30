@@ -1,0 +1,1019 @@
+{% extends "base.html" %}
+
+{% block title %}Group Membership Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">
+                        <i class="bi bi-people-fill"></i> Group Membership Management
+                    </h4>
+                    <div class="d-flex gap-2">
+                        {% if selected_group %}
+                        <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#addMemberModal">
+                            <i class="bi bi-person-plus"></i> Add Member
+                        </button>
+                        {% endif %}
+                        {% if pending_count > 0 %}
+                        <button type="button" class="btn btn-warning position-relative" data-bs-toggle="modal" data-bs-target="#pendingRequestsModal">
+                            <i class="bi bi-bell-fill"></i> 
+                            <span class="d-none d-md-inline">Notifications</span>
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                {{ pending_count }}
+                                <span class="visually-hidden">pending requests</span>
+                            </span>
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Group Information Card -->
+                    {% if selected_group %}
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card border-primary shadow-sm">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center">
+                                        <div class="me-3">
+                                            {% if selected_group.is_public %}
+                                            <i class="bi bi-unlock text-success fs-1" title="Public Group"></i>
+                                            {% else %}
+                                            <i class="bi bi-lock text-warning fs-1" title="Private Group"></i>
+                                            {% endif %}
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <h2 class="card-title mb-1 text-primary">{{ selected_group.name }}</h2>
+                                            <div class="d-flex flex-wrap gap-3 text-muted">
+                                                <span><i class="bi bi-tag me-1"></i>{{ selected_group.group_type.title() }} Group</span>
+                                                <span><i class="bi bi-people me-1"></i>{{ selected_group.current_members }}/{{ selected_group.max_members }} Members</span>
+                                                <span class="badge bg-{% if selected_group.status == 'approved' %}success{% else %}warning{% endif %}">
+                                                    <i class="bi bi-check-circle me-1"></i>{{ selected_group.status.title() }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Group Activity Overview Cards (US-GM-08) -->
+                    {% if selected_group and group_stats %}
+                    <div class="row g-3 mb-4">
+                        <div class="col-12">
+                            <h5 class="mb-3">
+                                <i class="bi bi-graph-up"></i> Group Activity Overview
+                            </h5>
+                        </div>
+                        <div class="col-md-8">
+                            <div class="kpi" onclick="location.href='/events/manage?group_id={{ selected_group.group_id }}'">
+                                <div class="row h-100">
+                                    <!-- Events Section -->
+                                    <div class="col-6 border-end">
+                                        <div class="text-center h-100 d-flex flex-column justify-content-center">
+                                            <i class="bi bi-calendar-check text-primary mb-2"></i>
+                                            <h4 class="text-primary mb-1">Events</h4>
+                                            <small class="text-muted">Total: {{ group_stats.event_registration_count }}</small>
+                                            <small class="text-muted">Upcoming: {{ group_stats.upcoming_event_count or 0 }}</small>
+                                        </div>
+                                    </div>
+                                    <!-- Participants Section -->
+                                    <div class="col-6">
+                                        <div class="text-center h-100 d-flex flex-column justify-content-center">
+                                            <i class="bi bi-people text-success mb-2"></i>
+                                            <h4 class="text-success mb-1">Participants</h4>
+                                            <small class="text-muted">Past: {{ group_stats.past_participants_count }}</small>
+                                            <small class="text-muted">Upcoming: {{ group_stats.upcoming_participants_count }}</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="kpi h-100" onclick="location.href='{{ url_for('group_analytics', group_id=selected_group.group_id) }}'">
+                                <i class="bi bi-graph-up-arrow"></i>
+                                <h3>{{ group_stats.participation_rate }}%</h3>
+                                <small>View Analytics</small>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Group Selection Section (for admin and group manager when group is selected) -->
+                    {% if selected_group %}
+                    <div class="row mb-3" id="groupSelectionSection">
+                        <div class="col-12">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-list-ul"></i> Select Group
+                                </h5>
+                                <button class="btn btn-outline-secondary btn-sm" onclick="toggleGroupTable()" id="toggleGroupBtn">
+                                    <i class="bi bi-chevron-down"></i> Switch Group
+                                </button>
+                            </div>
+                            
+                            <!-- Admin Group Search (Admin only) -->
+                            {% if user_role in ['super_admin', 'support_technician'] %}
+                            <div class="row mb-3" id="adminGroupSearch" style="display: none;">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-body">
+                                    <form method="GET" class="row g-1 align-items-end">
+                                        <!-- Search by group name -->
+                                        <div class="col-12 col-md-4">
+                                            <label class="form-label">Search Groups</label>
+                                            <input type="text" name="group_search" class="form-control" 
+                                                   placeholder="Search by group name"
+                                                   value="{{ request.args.get('group_search', '') }}">
+                                        </div>
+                                        <!-- Sort Groups -->
+                                        <div class="col-6 col-md-3">
+                                            <label for="groupSort" class="form-label">Sort Groups</label>
+                                            <select class="form-select" id="groupSort" name="group_sort" onchange="this.form.submit()">
+                                                <option value="newest" {% if group_sort == 'newest' %}selected{% endif %}>Newest</option>
+                                                <option value="oldest" {% if group_sort == 'oldest' %}selected{% endif %}>Oldest</option>
+                                                <option value="name_asc" {% if group_sort == 'name_asc' %}selected{% endif %}>Name A-Z</option>
+                                                <option value="name_desc" {% if group_sort == 'name_desc' %}selected{% endif %}>Name Z-A</option>
+                                            </select>
+                                        </div>
+                                        <!-- Buttons next to filters -->
+                                        <div class="col-md-auto d-flex align-items-end">
+                                            <div class="d-flex gap-1">
+                                                <button type="submit" class="btn btn-activeloop btn-extra-compact icon-bold" title="Search" aria-label="Search">
+                                                    <i class="bi bi-search"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-outline-activeloop btn-extra-compact icon-bold" onclick="clearFilters()" title="Reset" aria-label="Reset">
+                                                    <i class="bi bi-arrow-counterclockwise"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                            <div class="table-responsive" id="groupTable" style="display: block;">
+                                <table class="table table-hover">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>Group Name</th>
+                                            <th>Type</th>
+                                            <th>Members</th>
+                                            <th>Status</th>
+                                            <th>Created</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for group in available_groups %}
+                                        <tr>
+                                            <td>
+                                                <div class="fw-bold d-flex align-items-center gap-1">
+                                                    {{ group.name }}
+                                                    {% if group.is_public is defined %}
+                                                        {% if group.is_public %}
+                                                            <i class="bi bi-unlock text-success" title="Public Group"></i>
+                                                        {% else %}
+                                                            <i class="bi bi-lock text-warning" title="Private Group"></i>
+                                                        {% endif %}
+                                                    {% endif %}
+                                                </div>
+                                                <small class="text-muted">ID: {{ group.group_id }}</small>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-{% if group.group_type == 'activity' %}primary{% elif group.group_type == 'social' %}info{% else %}secondary{% endif %}">
+                                                    {{ group.group_type.title() }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-success">{{ group.current_members }}/{{ group.max_members }}</span>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-{% if group.status == 'approved' %}success{% elif group.status == 'inactive' %}warning{% else %}info{% endif %}">
+                                                    {{ group.status.title() }}
+                                                </span>
+                                            </td>
+                                            <td>{{ group.created_at | nz_date if group.created_at else 'N/A' }}</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-success" onclick="selectGroup({{ group.group_id }})">
+                                                    <i class="bi bi-check"></i> view
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                                
+                                <!-- Pagination -->
+                                <div class="mt-3">
+                                    {% include 'components/pagination.html' %}
+                                </div>
+                            </div>
+                        </div>
+                                </div>
+                                {% endif %}
+
+                    <!-- Search and Filters (only show when no group is selected) -->
+                    {% if not selected_group %}
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-body">
+                                    <form method="GET" class="row g-3 align-items-end">
+                                        <!-- Search by group name -->
+                                        <div class="col-md-3">
+                                            <label class="form-label">Search Groups</label>
+                                            <input type="text" name="group_search" class="form-control" 
+                                                   placeholder="Search by group name"
+                                                   value="{{ request.args.get('group_search', '') }}">
+                            </div>
+                                        <!-- Sort Groups -->
+                                        <div class="col-md-3">
+                                            <label for="groupSort" class="form-label">Sort Groups</label>
+                                            <select class="form-select" id="groupSort" name="group_sort" onchange="this.form.submit()">
+                                                <option value="newest" {% if group_sort == 'newest' %}selected{% endif %}>Newest</option>
+                                                <option value="oldest" {% if group_sort == 'oldest' %}selected{% endif %}>Oldest</option>
+                                                <option value="name_asc" {% if group_sort == 'name_asc' %}selected{% endif %}>Name A-Z</option>
+                                                <option value="name_desc" {% if group_sort == 'name_desc' %}selected{% endif %}>Name Z-A</option>
+                                            </select>
+                                        </div>
+                                        <!-- Clear + Search buttons (small, with slight gap) -->
+                                        <div class="col-12 col-md-5 d-flex align-items-end justify-content-end">
+                                            <div class="d-flex gap-1">
+                                                <button type="submit" class="btn btn-activeloop btn-extra-compact icon-bold" title="Search" aria-label="Search">
+                                                    <i class="bi bi-search"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-outline-activeloop btn-extra-compact icon-bold" onclick="clearFilters()" title="Reset" aria-label="Reset">
+                                                    <i class="bi bi-arrow-counterclockwise"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Group Selection (for super_admin, support_technician and multi-group managers) -->
+                    {% if user_role in ['super_admin', 'support_technician'] or (user_role == 'participant' and available_groups|length > 1) %}
+                    
+                    <!-- Group Selection Table -->
+                    <div class="row mb-3" id="groupSelectionSection">
+                        <div class="col-12">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-list-ul"></i> Select Group
+                                </h5>
+                                <button class="btn btn-outline-secondary btn-sm" onclick="toggleGroupTable()" id="toggleGroupBtn">
+                                    {% if selected_group %}
+                                    <i class="bi bi-chevron-down"></i> Switch Group
+                                    {% else %}
+                                    <i class="bi bi-chevron-up"></i> Hide Group List
+                                    {% endif %}
+                                </button>
+                            </div>
+                            
+                            <!-- Admin Group Search (only for admin when group is selected) -->
+                            {% if user_role in ['super_admin', 'support_technician'] and selected_group %}
+                            <div class="row mb-3" id="adminGroupSearch" {% if selected_group and user_role not in ['super_admin', 'support_technician'] %}style="display: none;"{% endif %}>
+                                <div class="col-12">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <form method="GET" class="row g-1 align-items-end">
+                                                <!-- Search by group name -->
+                                                <div class="col-md-3">
+                                                    <label class="form-label">Search Groups</label>
+                                                    <input type="text" name="group_search" class="form-control" 
+                                                           placeholder="Search by group name"
+                                                           value="{{ request.args.get('group_search', '') }}">
+                                                </div>
+                                                <!-- Sort Groups -->
+                                                <div class="col-md-3">
+                                                    <label for="groupSort" class="form-label">Sort Groups</label>
+                                                    <select class="form-select" id="groupSort" name="group_sort" onchange="this.form.submit()">
+                                                        <option value="newest" {% if group_sort == 'newest' %}selected{% endif %}>Newest</option>
+                                                        <option value="oldest" {% if group_sort == 'oldest' %}selected{% endif %}>Oldest</option>
+                                                        <option value="name_asc" {% if group_sort == 'name_asc' %}selected{% endif %}>Name A-Z</option>
+                                                        <option value="name_desc" {% if group_sort == 'name_desc' %}selected{% endif %}>Name Z-A</option>
+                                                    </select>
+                                                </div>
+                                                <!-- Buttons next to filters -->
+                                                <div class="col-md-auto d-flex align-items-end">
+                                                    <div class="d-flex gap-1">
+                                                        <button type="submit" class="btn btn-activeloop btn-extra-compact icon-bold" title="Search" aria-label="Search">
+                                                            <i class="bi bi-search"></i>
+                                                        </button>
+                                                        <button type="button" class="btn btn-outline-activeloop btn-extra-compact icon-bold" onclick="clearFilters()" title="Reset" aria-label="Reset">
+                                                            <i class="bi bi-arrow-counterclockwise"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            <div class="table-responsive" id="groupTable" {% if selected_group and user_role not in ['super_admin', 'support_technician'] %}style="display: block;"{% endif %}>
+                                <table class="table table-hover">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>Group Name</th>
+                                            <th>Type</th>
+                                            <th>Members</th>
+                                            <th>Status</th>
+                                            <th>Created</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for group in available_groups %}
+                                        <tr>
+                                            <td>
+                                                <div class="fw-bold d-flex align-items-center gap-1">
+                                                    {{ group.name }}
+                                                    {% if group.is_public is defined %}
+                                                        {% if group.is_public %}
+                                                            <i class="bi bi-unlock text-success" title="Public Group"></i>
+                                                        {% else %}
+                                                            <i class="bi bi-lock text-warning" title="Private Group"></i>
+                                                        {% endif %}
+                                                    {% endif %}
+                                                </div>
+                                                <small class="text-muted">ID: {{ group.group_id }}</small>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-{% if group.group_type == 'activity' %}primary{% elif group.group_type == 'social' %}info{% else %}secondary{% endif %}">
+                                                    {{ group.group_type.title() }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-success">{{ group.current_members }}/{{ group.max_members }}</span>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-{% if group.status == 'approved' %}success{% elif group.status == 'inactive' %}warning{% else %}info{% endif %}">
+                                                    {{ group.status.title() }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <small class="text-muted">{{ group.created_at|nz_date if group.created_at else 'N/A' }}</small>
+                                            </td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-success" onclick="selectGroup({{ group.group_id }})">
+                                                    <i class="bi bi-check-circle"></i> view
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <!-- Pagination -->
+                            <div class="mt-3">
+                                {% include 'components/pagination.html' %}
+                            </div>
+                        </div>
+                      </div>
+                      {% endif %}
+                      {% endif %}
+  
+                      <!-- No group selected message for multi-group managers -->
+                    {% if user_role == 'participant' and available_groups|length > 1 and not selected_group %}
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="alert alert-warning text-center">
+                                <h5><i class="bi bi-exclamation-triangle"></i> Select a Group to Manage</h5>
+                                <p class="mb-0">You are a manager of multiple groups. Please select a group from the list above to manage its members.</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Search and Filter (only show when group is selected) -->
+                    {% if selected_group %}
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                <input type="text" class="form-control" id="searchInput" placeholder="Search members..." onkeyup="filterMembers()">
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <select class="form-select" id="roleFilter" onchange="filterMembers()">
+                                <option value="">All Roles</option>
+                                <option value="manager">Manager</option>
+                                <option value="volunteer">Staff</option>
+                                <option value="member">Member</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <select class="form-select" id="statusFilter" onchange="filterMembers()">
+                                <option value="">All Status</option>
+                                <option value="active">Active</option>
+                                <option value="pending">Pending</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <select class="form-select" id="memberSort" onchange="sortMembers()">
+                                <option value="role" {% if member_sort == 'role' %}selected{% endif %}>Sort by Role</option>
+                                <option value="name_asc" {% if member_sort == 'name_asc' %}selected{% endif %}>Name A-Z</option>
+                                <option value="name_desc" {% if member_sort == 'name_desc' %}selected{% endif %}>Name Z-A</option>
+                                <option value="join_date_asc" {% if member_sort == 'join_date_asc' %}selected{% endif %}>Join Date (Oldest)</option>
+                                <option value="join_date_desc" {% if member_sort == 'join_date_desc' %}selected{% endif %}>Join Date (Newest)</option>
+                                <option value="status" {% if member_sort == 'status' %}selected{% endif %}>Sort by Status</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Members Table -->
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="membersTable">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>User</th>
+                                    <th>Role</th>
+                                    <th>Status</th>
+                                    <th>Join Date</th>
+                                    <th>Activity Records</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for member in group_members %}
+                                <tr data-role="{{ member.group_role }}" data-status="{{ member.status }}">
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar-sm me-2">
+                                                {% if member.user_image %}
+                                                <img src="{{ url_for('static', filename=member.user_image) }}" 
+                                                     class="rounded-circle" width="32" height="32" alt="Avatar">
+                                                {% else %}
+                                                <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center" 
+                                                     style="width: 32px; height: 32px;">
+                                                    <i class="bi bi-person text-white"></i>
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                            <div>
+                                                <div class="fw-bold">{{ member.first_name }} {{ member.last_name }}</div>
+                                                <small class="text-muted">@{{ member.username }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{% if member.group_role == 'manager' %}primary{% elif member.group_role == 'volunteer' %}warning text-dark{% else %}secondary{% endif %}">
+                                            {% if member.group_role == 'manager' %}Manager{% elif member.group_role == 'volunteer' %}Staff{% else %}Member{% endif %}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{% if member.status == 'active' %}success{% elif member.status == 'pending' %}warning{% else %}danger{% endif %}">
+                                            {{ member.status.title() }}
+                                        </span>
+                                    </td>
+                                    <td>{{ member.join_date|nz_date if member.join_date else 'N/A' }}</td>
+                                    <td>
+                                        <div class="small">
+                                            <div class="d-flex align-items-center mb-1">
+                                                <i class="bi bi-calendar-check me-1 text-primary"></i>
+                                                <span class="text-muted">Events:</span>
+                                                <span class="ms-1 fw-bold">{{ member.total_events_attended or 0 }}</span>
+                                            </div>
+                                            <div class="d-flex align-items-center mb-1">
+                                                <i class="bi bi-heart me-1 text-danger"></i>
+                                                <span class="text-muted">Volunteer:</span>
+                                                <span class="ms-1 fw-bold">{{ member.volunteer_events_count or 0 }}</span>
+                                            </div>
+                                            {% if member.last_event_date %}
+                                            <div class="d-flex align-items-center">
+                                                <i class="bi bi-clock me-1 text-info"></i>
+                                                <span class="text-muted">Last:</span>
+                                                <span class="ms-1">{{ member.last_event_date|nz_date }}</span>
+                                            </div>
+                                            {% else %}
+                                            <div class="text-muted small">
+                                                <i class="bi bi-dash-circle me-1"></i>No events yet
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            {% if member.status == 'pending' %}
+                                            <button class="btn btn-success btn-sm" 
+                                                    onclick="approveRequest({{ member.membership_id }}, '{{ member.username|e }}')"
+                                                    title="Approve Request">
+                                                <i class="bi bi-check-circle"></i>
+                                            </button>
+                                            <button class="btn btn-danger btn-sm" 
+                                                    onclick="rejectRequest({{ member.membership_id }}, '{{ member.username|e }}')"
+                                                    title="Reject Request">
+                                                <i class="bi bi-x-circle"></i>
+                                            </button>
+                                            {% else %}
+                                            <button class="btn btn-outline-success btn-sm" 
+                                                    onclick="editMemberRole({{ member.membership_id }}, '{{ member.group_role|e }}', '{{ member.username|e }}')"
+                                                    title="Change Role">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            {% if member.user_id != current_user_id %}
+                                            <button class="btn btn-outline-danger btn-sm" 
+                                                    onclick="removeMember({{ member.membership_id }}, '{{ member.username|e }}')"
+                                                    title="Remove Member">
+                                                <i class="bi bi-person-dash"></i>
+                                            </button>
+                                            {% endif %}
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {% if not group_members %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-people text-muted" style="font-size: 3rem;"></i>
+                        <h5 class="text-muted">No members found</h5>
+                        <p class="text-muted">This group doesn't have any members yet.</p>
+                    </div>
+                    {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Member Modal -->
+<div class="modal fade" id="addMemberModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-person-plus"></i> Add New Member
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('add_group_member') }}">
+                <div class="modal-body">
+                    <input type="hidden" name="group_id" value="{{ selected_group_id }}">
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label for="userSearch" class="form-label">Search Users</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="userSearch" 
+                                       placeholder="Type username, name, or email..." 
+                                       onkeyup="searchUsers()">
+                                <button class="btn btn-outline-secondary" type="button" onclick="searchUsers()">
+                                    <i class="bi bi-search"></i>
+                                </button>
+                            </div>
+                            <div id="userSearchResults" class="mt-2" style="max-height: 200px; overflow-y: auto;">
+                                <!-- Search results will be populated here -->
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="memberRole" class="form-label">Member Role</label>
+                            <select class="form-select" name="member_role" id="memberRole" required>
+                                <option value="member">Member</option>
+                                <option value="volunteer">Staff</option>
+                                <option value="manager">Manager</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <label class="form-label">Selected User</label>
+                        <div id="selectedUser" class="border rounded p-3 bg-light" style="display: none;">
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-sm me-3">
+                                    <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center" 
+                                         style="width: 40px; height: 40px;">
+                                        <i class="bi bi-person text-white"></i>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="fw-bold" id="selectedUserName"></div>
+                                    <small class="text-muted" id="selectedUserEmail"></small>
+                                </div>
+                            </div>
+                        </div>
+                        <input type="hidden" name="user_id" id="selectedUserId">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning" id="addMemberBtn" disabled>
+                        <i class="bi bi-person-plus"></i> Add Member
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Role Modal -->
+<div class="modal fade" id="editRoleModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-pencil"></i> Change Member Role
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('change_member_role') }}">
+                <div class="modal-body">
+                    <input type="hidden" name="membership_id" id="editMembershipId">
+                    <input type="hidden" name="group_id" value="{{ selected_group_id }}">
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Member</label>
+                        <div class="form-control-plaintext" id="editMemberName"></div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="newRole" class="form-label">New Role</label>
+                        <select class="form-select" name="new_role" id="newRole" required>
+                            <option value="member">Member</option>
+                            <option value="volunteer">Staff</option>
+                            <option value="manager">Manager</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg"></i> Update Role
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Reject Request Modal -->
+<div class="modal fade" id="rejectRequestModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-x-circle"></i> Reject Group Request
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('reject_group_request') }}">
+                <div class="modal-body">
+                    <input type="hidden" name="membership_id" id="rejectMembershipId">
+                    <input type="hidden" name="group_id" value="{{ selected_group_id }}">
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Member</label>
+                        <div class="form-control-plaintext" id="rejectMemberName"></div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="rejectReason" class="form-label">Reason for Rejection</label>
+                        <select class="form-select" name="reason" id="rejectReason" required>
+                            <option value="">Select reason...</option>
+                            <option value="group_full">Group Full</option>
+                            <option value="activity_mismatch">Activity Mismatch</option>
+                            <option value="insufficient_info">Insufficient Information</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-x-circle"></i> Reject Request
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+<script>
+let searchTimeout;
+
+// Group selection change (for super_admin)
+function loadGroupMembers() {
+    const groupId = document.getElementById('groupSelect').value;
+    if (groupId) {
+        window.location.href = `{{ url_for('membership_management') }}?group_id=${groupId}`;
+    }
+}
+
+// Sort groups (for super_admin)
+function filterGroups() {
+    const sortFilter = document.getElementById('groupSort').value;
+    const baseUrl = '{{ url_for("membership_management") }}';
+    window.location.href = `${baseUrl}?group_sort=${sortFilter}`;
+}
+
+// Select group from table
+function selectGroup(groupId) {
+    // Hide the group table when a group is selected (only for non-admin users)
+    const table = document.getElementById('groupTable');
+    const btn = document.getElementById('toggleGroupBtn');
+    if (table && btn) {
+        // Check if user is admin - if not, hide the table
+        const isAdmin = {{ 'true' if user_role in ['super_admin', 'support_technician'] else 'false' }};
+        if (!isAdmin) {
+        table.style.display = 'none';
+        btn.innerHTML = '<i class="bi bi-chevron-down"></i> Show Group List';
+        }
+    }
+    
+    window.location.href = `{{ url_for('membership_management') }}?group_id=${groupId}`;
+}
+
+// Toggle group table visibility
+function toggleGroupTable() {
+    const table = document.getElementById('groupTable');
+    const search = document.getElementById('adminGroupSearch');
+    const btn = document.getElementById('toggleGroupBtn');
+    const icon = btn.querySelector('i');
+    
+    if (table.style.display === 'none') {
+        table.style.display = 'block';
+        if (search) search.style.display = 'block';
+        icon.className = 'bi bi-chevron-up';
+        btn.innerHTML = '<i class="bi bi-chevron-up"></i> Hide Group List';
+    } else {
+        table.style.display = 'none';
+        if (search) search.style.display = 'none';
+        icon.className = 'bi bi-chevron-down';
+        btn.innerHTML = '<i class="bi bi-chevron-down"></i> Show Group List';
+    }
+}
+
+// Clear selection
+function clearSelection() {
+    // Clear any selected group and reload the page
+    window.location.href = `{{ url_for('membership_management') }}`;
+}
+
+// Filter members table
+function filterMembers() {
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const roleFilter = document.getElementById('roleFilter').value;
+    const statusFilter = document.getElementById('statusFilter').value;
+    const rows = document.querySelectorAll('#membersTable tbody tr');
+    
+    rows.forEach(row => {
+        const name = row.querySelector('td:first-child').textContent.toLowerCase();
+        const role = row.getAttribute('data-role');
+        const status = row.getAttribute('data-status');
+        
+        const matchesSearch = name.includes(searchTerm);
+        const matchesRole = !roleFilter || role === roleFilter;
+        const matchesStatus = !statusFilter || status === statusFilter;
+        
+        row.style.display = (matchesSearch && matchesRole && matchesStatus) ? '' : 'none';
+    });
+}
+
+// Search users for adding
+function searchUsers() {
+    const query = document.getElementById('userSearch').value.trim();
+    if (query.length < 2) {
+        document.getElementById('userSearchResults').innerHTML = '';
+        return;
+    }
+    
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        fetch(`{{ url_for('search_users') }}?q=${encodeURIComponent(query)}`)
+            .then(response => response.json())
+            .then(data => {
+                const resultsDiv = document.getElementById('userSearchResults');
+                if (data.users && data.users.length > 0) {
+                    resultsDiv.innerHTML = data.users.map(user => `
+                        <div class="border rounded p-2 mb-2 cursor-pointer user-option" 
+                             onclick="selectUser(${user.user_id}, '${user.username}', '${user.first_name}', '${user.last_name}', '${user.email}')">
+                            <div class="fw-bold">${user.first_name} ${user.last_name}</div>
+                            <small class="text-muted">@${user.username} • ${user.email}</small>
+                        </div>
+                    `).join('');
+                } else {
+                    resultsDiv.innerHTML = '<div class="text-muted">No users found</div>';
+                }
+            })
+            .catch(error => {
+                console.error('Search error:', error);
+                document.getElementById('userSearchResults').innerHTML = '<div class="text-danger">Search failed</div>';
+            });
+    }, 300);
+}
+
+// Select user for adding
+function selectUser(userId, username, firstName, lastName, email) {
+    document.getElementById('selectedUserId').value = userId;
+    document.getElementById('selectedUserName').textContent = `${firstName} ${lastName}`;
+    document.getElementById('selectedUserEmail').textContent = email;
+    document.getElementById('selectedUser').style.display = 'block';
+    document.getElementById('addMemberBtn').disabled = false;
+    document.getElementById('userSearchResults').innerHTML = '';
+    document.getElementById('userSearch').value = '';
+}
+
+// Edit member role
+function editMemberRole(membershipId, currentRole, username) {
+    document.getElementById('editMembershipId').value = membershipId;
+    document.getElementById('editMemberName').textContent = username;
+    document.getElementById('newRole').value = currentRole;
+    new bootstrap.Modal(document.getElementById('editRoleModal')).show();
+}
+
+// Remove member
+function removeMember(membershipId, username) {
+    if (confirm(`Are you sure you want to remove ${username} from this group?`)) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '{{ url_for("remove_group_member") }}';
+        
+        const membershipIdInput = document.createElement('input');
+        membershipIdInput.type = 'hidden';
+        membershipIdInput.name = 'membership_id';
+        membershipIdInput.value = membershipId;
+        
+        const groupIdInput = document.createElement('input');
+        groupIdInput.type = 'hidden';
+        groupIdInput.name = 'group_id';
+        groupIdInput.value = '{{ selected_group_id }}';
+        
+        form.appendChild(membershipIdInput);
+        form.appendChild(groupIdInput);
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+// Approve group request
+function approveRequest(membershipId, username) {
+    if (confirm(`Are you sure you want to approve ${username}'s request to join this group?`)) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '{{ url_for("approve_group_request") }}';
+        
+        const membershipIdInput = document.createElement('input');
+        membershipIdInput.type = 'hidden';
+        membershipIdInput.name = 'membership_id';
+        membershipIdInput.value = membershipId;
+        
+        const groupIdInput = document.createElement('input');
+        groupIdInput.type = 'hidden';
+        groupIdInput.name = 'group_id';
+        groupIdInput.value = '{{ selected_group_id }}';
+        
+        form.appendChild(membershipIdInput);
+        form.appendChild(groupIdInput);
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+// Reject group request
+function rejectRequest(membershipId, username) {
+    // Close the pending requests modal first if it's open
+    const pendingModal = bootstrap.Modal.getInstance(document.getElementById('pendingRequestsModal'));
+    if (pendingModal) {
+        pendingModal.hide();
+    }
+    
+    // Set up the reject modal data
+    document.getElementById('rejectMembershipId').value = membershipId;
+    document.getElementById('rejectMemberName').textContent = username;
+    document.getElementById('rejectReason').value = '';
+    
+    // Show the reject modal after a short delay to ensure the pending modal is closed
+    setTimeout(() => {
+        new bootstrap.Modal(document.getElementById('rejectRequestModal')).show();
+    }, 150);
+}
+
+// Add cursor pointer style
+document.addEventListener('DOMContentLoaded', function() {
+    const style = document.createElement('style');
+    style.textContent = '.cursor-pointer { cursor: pointer; } .user-option:hover { background-color: #f8f9fa; }';
+    document.head.appendChild(style);
+});
+</script>
+
+<!-- Pending Requests Modal -->
+<div class="modal fade" id="pendingRequestsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-bell-fill text-warning me-2"></i>Pending Join Requests
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <strong>Notification:</strong> These users have requested to join your private group and are waiting for your approval.
+                </div>
+                
+                {% if pending_count > 0 %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>User</th>
+                                <th>Request Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for member in group_members %}
+                                {% if member.status == 'pending' %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="me-3">
+                                                <i class="bi bi-person-circle text-muted" style="font-size: 2rem;"></i>
+                                            </div>
+                                            <div>
+                                                <strong>{{ member.first_name }} {{ member.last_name }}</strong>
+                                                <br>
+                                                <small class="text-muted">@{{ member.username }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">{{ member.join_date|nz_date }} {{ member.join_date|nz_time12_upper if member.join_date else 'Unknown' }}</small>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex" style="gap: 0.5rem;">
+                                            <button type="button" class="btn btn-success btn-sm" 
+                                                    onclick="approveRequest({{ member.membership_id }}, '{{ member.username }}')">
+                                                <i class="bi bi-check-lg"></i> Approve
+                                            </button>
+                                            <button type="button" class="btn btn-danger btn-sm" 
+                                                    onclick="rejectRequest({{ member.membership_id }}, '{{ member.username }}')">
+                                                <i class="bi bi-x-lg"></i> Reject
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="bi bi-check-circle text-success" style="font-size: 3rem;"></i>
+                    <h5 class="mt-3 text-muted">No Pending Requests</h5>
+                    <p class="text-muted">All join requests have been processed.</p>
+                </div>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Ensure reject modal appears above pending requests modal */
+#rejectRequestModal {
+    z-index: 1060 !important;
+}
+</style>
+
+<script>
+function clearFilters() {
+    // Clear search input
+    document.querySelector('input[name="group_search"]').value = '';
+    
+    // Reset sort to default
+    document.querySelector('select[name="group_sort"]').value = 'newest';
+    
+    // Submit form to refresh page
+    document.querySelector('form').submit();
+}
+
+function filterGroups() {
+    // This function is called when sort dropdown changes
+    document.querySelector('form').submit();
+}
+</script>
+{% endblock %}

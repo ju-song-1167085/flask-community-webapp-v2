@@ -1,0 +1,247 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Create Group' if (session.get('platform_role') in ['super_admin','support_technician'] and mode=='create') else ('Edit Group' if (session.get('platform_role') in ['super_admin','support_technician'] and mode=='edit') else ('View Application' if mode=='view' else 'Apply to Create Group')) }}{% endblock %}
+
+{% block content %}
+{% set _is_admin = session.get('platform_role') in ['super_admin','support_technician'] %}
+
+<div class="container py-3" style="max-width: 980px;">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="m-0">{{ 'Create Group' if mode=='create' else ('Edit Group' if mode=='edit' else 'View Application') }}</h1>
+    <div class="d-flex gap-2">
+      {% if mode=='edit' and group %}
+      <a class="btn btn-activeloop btn-compact d-inline-flex align-items-center" style="border-radius: var(--radius);" href="{{ url_for('membership_management', group_id=group.group_id) }}">
+        <i class="bi bi-people-fill me-1"></i> Group Members
+      </a>
+      {% endif %}
+      <a class="btn btn-outline-activeloop btn-compact d-inline-flex align-items-center" style="border-radius: var(--radius);" href="{{ url_for('groups_index') }}">
+        <i class="bi bi-arrow-left-circle me-1"></i> Back
+      </a>
+    </div>
+  </div>
+
+  {% if not _is_admin %}
+    <div class="alert alert-info py-2">
+      Your submission will be reviewed by an admin. You will receive a notification once it’s approved or rejected.
+    </div>
+
+    {# Tip: If the last record was rejected, the application will be rejected #}
+    {% if group and group.status == 'rejected' %}
+      <div class="alert alert-warning">
+        <div class="fw-semibold mb-1">
+          Your previous application was <span class="text-danger">rejected</span>.
+        </div>
+        <div>Please contact support through the helpdesk for more information about the rejection.</div>
+        <div class="small text-muted mt-1">Please update the information below and submit again.</div>
+      </div>
+    {% endif %}
+  {% endif %}
+
+  {% if mode != 'view' %}
+  <form method="post" novalidate>
+    {# Hidden ID for continued rejected/draft work #}
+    {% if resume_id %}<input type="hidden" name="resume_id" value="{{ resume_id }}">{% endif %}
+  {% endif %}
+  
+  {# Disable form for support_technician (read-only view) #}
+  {% if mode == 'edit' and not can_edit %}
+    <div class="alert alert-info">
+      <i class="bi bi-info-circle me-2"></i>
+      <strong>Read-only view:</strong> You can view group information and members, but cannot make changes. Only Super Admins can edit group information.
+    </div>
+  {% endif %}
+
+    <div class="row">
+      <div class="col-md-8 mb-3">
+        <label class="form-label">Name <span class="text-danger">*</span></label>
+        <input name="name" class="form-control" required
+               value="{{ group.name if group else '' }}"
+               {% if mode == 'view' or (mode == 'edit' and not can_edit) %}readonly{% endif %}>
+      </div>
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Visibility <span class="text-danger">*</span></label>
+        {% set vis = 'public' if (not group or group.is_public) else 'private' %}
+        <select name="visibility" class="form-select" {% if mode == 'view' or (mode == 'edit' and not can_edit) %}disabled{% endif %}>
+          <option value="public"  {% if vis=='public' %}selected{% endif %}>Public (immediate join)</option>
+          <option value="private" {% if vis=='private' %}selected{% endif %}>Private (approval required)</option>
+        </select>
+        <div class="form-text">Public = Join now; Private = Approval required (handled as is_public on the backend)</div>
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Description</label>
+      <textarea name="description" class="form-control" rows="3" maxlength="500" placeholder="Enter group description (max 500 characters)" {% if mode == 'view' or (mode == 'edit' and not can_edit) %}readonly{% endif %}>{{ group.description if group else '' }}</textarea>
+    </div>
+
+    <div class="row">
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Group Type <span class="text-danger">*</span></label>
+        {% set gt = group.group_type if group else 'mixed' %}
+        <select name="group_type" class="form-select" {% if mode == 'view' or (mode == 'edit' and not can_edit) %}disabled{% endif %}>
+          {% for t in group_types %}
+            <option value="{{ t }}" {% if gt==t %}selected{% endif %}>{{ t|capitalize }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Location</label>
+        <select name="location" class="form-select" {% if mode == 'view' or (mode == 'edit' and not can_edit) %}disabled{% endif %}>
+          <option value="">-- Select --</option>
+          {% for loc in locations %}
+            <option value="{{ loc }}" {% if group and (group.location==loc or group.group_location==loc) %}selected{% endif %}>{{ loc }}</option>
+          {% endfor %}
+        </select>
+        <div class="form-text">If the backend does not have a location column, it will be ignored by the backend.</div>
+      </div>
+
+      <div class="col-md-4 mb-3">
+        <label class="form-label">Max Members <span class="text-danger">*</span></label>
+        <input type="number" min="1" name="max_members" class="form-control"
+               value="{{ group.max_members if group else 500 }}"
+               {% if mode == 'view' or (mode == 'edit' and not can_edit) %}readonly{% endif %}>
+      </div>
+    </div>
+
+    {% if mode != 'view' and can_edit %}
+    <div class="d-flex gap-2">
+      <a class="btn btn-activeloop btn-compact d-inline-flex align-items-center" style="border-radius: var(--radius);"
+         href="{{ url_for('groups_index') if _is_admin else url_for('explore', tab='groups') }}">
+        <i class="bi bi-x-circle me-1"></i>
+        Cancel
+      </a>
+
+      {% if not _is_admin %}
+      <button class="btn btn-outline-activeloop btn-compact d-inline-flex align-items-center" style="border-radius: var(--radius);" type="submit" name="action" value="save_draft">
+        <i class="bi bi-journal-text me-1"></i> Save Draft
+      </button>
+      {% endif %}
+
+      <button class="btn btn-outline-activeloop btn-compact d-inline-flex align-items-center" style="border-radius: var(--radius);" type="submit" name="action" value="submit">
+        <i class="bi bi-save2 me-1"></i>
+        {% if _is_admin %}
+          {{ 'Create' if mode=='create' else 'Save Changes' }}
+        {% else %}
+          Submit application
+        {% endif %}
+      </button>
+    </div>
+    {% elif mode == 'view' and group and group.group_id %}
+    <div class="d-flex gap-2">
+      <form method="POST" action="{{ url_for('group_approve', group_id=group.group_id) }}" class="d-inline">
+        <button type="submit" class="btn btn-success" 
+                onclick="return confirm('Are you sure you want to approve this group application?')">
+          <i class="bi bi-check-circle me-2"></i>Approve
+        </button>
+      </form>
+      <div class="vr mx-2"></div>
+      <form method="POST" action="{{ url_for('group_reject', group_id=group.group_id) }}" class="d-inline">
+        <div class="d-flex gap-2 align-items-end">
+          <div>
+            <label class="form-label small">Reject:</label>
+            <select name="reason" class="form-select" required>
+              <option value="">Select reason...</option>
+              <option value="inappropriate_content">Inappropriate Content</option>
+              <option value="duplicate_group">Duplicate Group</option>
+              <option value="insufficient_info">Insufficient Information</option>
+              <option value="guideline_violation">Guideline Violation</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-danger">
+            <i class="bi bi-x-circle me-2"></i>Reject
+          </button>
+        </div>
+      </form>
+    </div>
+    {% endif %}
+
+  {% if mode != 'view' %}
+  </form>
+  {% endif %}
+
+  {% if _is_admin and mode == 'edit' %}
+  <hr class="my-4">
+
+  <h5 class="mb-3">Join Requests</h5>
+  <div class="table-responsive mb-4">
+    <table class="table table-sm align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Username</th>
+          <th>Message</th>
+          <th>Requested At</th>
+          <th class="text-end">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in pending_requests %}
+        <tr>
+          <td>{{ r.username }}</td>
+          <td class="text-wrap">{{ r.message or '-' }}</td>
+          <td>{{ r.requested_at }}</td>
+          <td class="text-end">
+            <form method="post" class="d-inline"
+                  action="{{ url_for('group_request_approve', group_id=group.group_id, req_id=r.request_id) }}">
+              <button class="btn btn-sm btn-success">
+                <i class="bi bi-check2-circle"></i> Approve
+              </button>
+            </form>
+            <form method="post" class="d-inline ms-1"
+                  action="{{ url_for('group_request_reject', group_id=group.group_id, req_id=r.request_id) }}">
+              <button class="btn btn-sm btn-outline-danger">
+                <i class="bi bi-x-circle"></i> Reject
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" class="text-center text-muted">No pending requests</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-sm align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Username</th>
+          <th>Role</th>
+          <th>Status</th>
+          <th>Joined</th>
+          <th class="text-end">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in members %}
+        <tr>
+          <td>{{ m.username }}</td>
+          <td>{{ m.group_role }}</td>
+          <td>{{ m.status }}</td>
+          <td>{{ m.join_date }}</td>
+          <td class="text-end">
+            <form method="post" class="d-inline"
+                  action="{{ url_for('group_member_remove', group_id=group.group_id, user_id=m.user_id) }}"
+                  onsubmit="return confirm('Remove this member?')">
+              <button class="btn btn-sm btn-outline-danger">
+                <i class="bi bi-person-dash"></i> Remove
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="text-center text-muted">No members</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</div>
+
+{% if mode == 'view' %}
+<script>
+  // askRejectReason function removed - now using dropdown selection
+</script>
+{% endif %}
+{% endblock %}

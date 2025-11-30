@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block title %}Export Preview - Event Participation Data{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid py-4">
+  
+  <!-- Header -->
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-header">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h1 class="mb-0">
+            <i class="bi bi-file-earmark-spreadsheet me-2"></i>Export Preview
+          </h1>
+          <p class="text-muted mb-0">Review event participation data before downloading</p>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <div class="d-flex align-items-center">
+            <i class="bi bi-file-text me-2 text-primary"></i>
+            <div>
+              <strong>{{ total_records }}</strong> Records
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="d-flex align-items-center">
+            <i class="bi bi-calendar-check me-2 text-success"></i>
+            <div>
+              Period: <strong>{{ period_range }}</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="d-flex gap-2">
+        <a href="{{ url_for('download_events_xlsx') }}" class="btn btn-success fw-bold d-inline-flex align-items-center" style="border-radius: var(--radius); font-size: var(--fs-base);">
+          <i class="bi bi-file-earmark-spreadsheet me-2"></i>Download Excel
+        </a>
+        <a href="{{ url_for('download_events_csv') }}" class="btn btn-activeloop">
+          <i class="bi bi-file-text me-2"></i>Download CSV
+        </a>
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary fw-bold d-inline-flex align-items-center" style="border-radius: var(--radius); font-size: var(--fs-base);">
+          <i class="bi bi-arrow-left me-2"></i>Back to Dashboard
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search and Filter -->
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-12">
+          <input type="text" id="searchInput" class="form-control" placeholder="Search events, groups, locations...">
+        </div>
+      </div>
+    </div>
+  </div>
+
+    <!-- Data Table -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover" id="dataTable">
+            <thead class="table-light">
+                <tr>
+                <th>Event ID</th>
+                <th>Event Title</th>
+                <th>Type</th>
+                <th>Date</th>
+                <th>Time</th>
+                <th>Location</th>
+                <th>Status</th>
+                <th>Group</th>
+                <th class="text-center">Total</th>
+                <th class="text-center">Attended</th>
+                <th class="text-center">No Show</th>
+                <th class="text-center">Cancelled</th>
+                <th class="text-center">Rate %</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                {% for row in data %}
+                <tr>
+                <td><strong>#{{ row.event_id }}</strong></td>
+                <td>{{ row.event_title }}</td>
+                <td><span class="badge bg-info">{{ row.event_type }}</span></td>
+                <td>{{ row.formatted_date }}</td>
+                <td>{{ row.formatted_time }}</td>
+                <td>{{ row.location or 'N/A' }}</td>
+                <td>
+                    <span class="badge 
+                    {% if row.event_status == 'completed' %}bg-success
+                    {% elif row.event_status == 'upcoming' %}bg-warning
+                    {% else %}bg-secondary{% endif %}">
+                    {{ row.event_status.title() }}
+                    </span>
+                </td>
+                <td>{{ row.group_name }}</td>
+                <td class="text-center"><strong>{{ row.total_registrations }}</strong></td>
+                <td class="text-center">
+                    <span class="badge badge-ok">{{ row.attended }}</span>
+                </td>
+                <td class="text-center">
+                    <span class="badge badge-warn">{{ row.no_show }}</span>
+                </td>
+                <td class="text-center">
+                    <span class="badge badge-danger-soft">{{ row.cancelled }}</span>
+                </td>
+                <td class="text-center">
+                    {% set rate = row.attendance_rate %}
+                    {% if rate >= 80 %}
+                    <span class="badge badge-ok">{{ "%.1f"|format(rate) }}%</span>
+                    {% elif rate >= 50 %}
+                    <span class="badge badge-warn">{{ "%.1f"|format(rate) }}%</span>
+                    {% else %}
+                    <span class="badge badge-danger-soft">{{ "%.1f"|format(rate) }}%</span>
+                    {% endif %}
+                </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            </table>
+        </div>
+
+        {% if total_records == 0 %}
+        <div class="text-center py-5">
+            <i class="bi bi-inbox"></i>
+            <p class="text-muted mt-2">No event data available</p>
+        </div>
+        {% endif %}
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    {% if pagination and pagination.pages > 1 %}
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+        {% include 'components/pagination.html' %}
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+<script>
+// Search function
+var searchInput = document.getElementById('searchInput');
+var tableBody = document.getElementById('tableBody');
+var allRows = Array.from(tableBody.getElementsByTagName('tr'));
+
+searchInput.addEventListener('input', function() {
+    var searchText = this.value.toLowerCase();
+    
+    allRows.forEach(function(row) {
+        var text = row.textContent.toLowerCase();
+        if (text.includes(searchText)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+});
+</script>
+
+{% endblock %}

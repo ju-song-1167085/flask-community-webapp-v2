@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% block title %}Event Results{% endblock %}
+
+{% block content %}
+<div class="container py-3">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">
+      All Results — {{ event_title or 'Event' }}
+      {% if event_date %}<small class="text-muted">({{ event_date | nz_date }})</small>{% endif %}
+    </h4>
+    <div class="btn-group">
+      <a href="{{ url_for('export_event_results_csv', event_id=event_id) }}" class="btn btn-sm btn-outline-primary">
+        <i class="bi bi-filetype-csv me-1"></i>Download CSV
+      </a>
+      <!-- <a href="{{ url_for('export_event_results_pdf', event_id=event_id) }}" class="btn btn-sm btn-outline-danger">
+        <i class="bi bi-filetype-pdf me-1"></i>Download PDF
+      </a> -->
+    </div>
+  </div>
+
+    <p class="mb-3">
+    <strong>Average:</strong> {{ avg_finish }} 
+    {% if best_user %}
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        <strong>Best Result:</strong> {{ best_user }} — {{ best_time }}
+    {% endif %}
+    </p>
+
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-sm align-middle">
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Membership ID</th>
+              <th>Username</th>
+              <th>Start Time</th>   
+              <th>End Time</th>     
+              <th>Finish Time</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in rows %}
+              <tr>
+                <td>{{ r.rank }}</td>
+                <td>{{ r.membership_id }}</td>
+                <td>{{ r.username }}</td>
+                <td>{{ r.start_time.strftime('%H:%M:%S') if r.start_time else '-' }}</td>
+                <td>{{ r.finish_time.strftime('%H:%M:%S') if r.finish_time else '-' }}</td>
+                <td>{{ r.elapsed_display }}</td>
+              </tr>
+            {% else %}
+              <tr><td colspan="4" class="text-muted">No valid results.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <a href="{{ url_for('compare_view') }}" class="btn btn-outline-secondary btn-sm">Back</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,818 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/analytics.css') }}">
+{% endblock %}
+
+{% block title %}Group Analytics - {{ analytics.group_info.name }}{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid py-4">
+    
+    <!-- Page Header -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="mb-0 text-2xl font-bold">Group Analytics</h1>
+                    <p class="text-gray-600 mb-0 fs-5">{{ analytics.group_info.name }}</p>
+                </div>
+                <a href="{{ url_for('membership_management', group_id=analytics.group_info.group_id) }}" class="btn btn-primary">
+                    <i class="bi bi-arrow-left me-2"></i>Back to Group
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Group Info Card -->
+    <div class="card border-0 shadow-sm mb-4 hover-card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="bi bi-info-circle me-2"></i>Group Information
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <div class="info-row">
+                        <i class="bi bi-tag text-primary me-2"></i>
+                        <strong>Group Name:</strong><br>
+                        <span class="text-muted">{{ analytics.group_info.name }}</span>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="info-row">
+                        <i class="bi bi-collection text-info me-2"></i>
+                        <strong>Type:</strong><br>
+                        <span class="text-muted">{{ analytics.group_info.group_type.title() }}</span>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="info-row">
+                        <i class="bi bi-check-circle text-success me-2"></i>
+                        <strong>Status:</strong><br>
+                        <span class="badge bg-success">{{ analytics.group_info.status.title() }}</span>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="info-row">
+                        <i class="bi bi-calendar text-warning me-2"></i>
+                        <strong>Created:</strong><br>
+                        <span class="text-muted">{{ analytics.group_info.created_at | nz_date }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <hr class="my-3">
+            
+            <div>
+                <i class="bi bi-person-gear me-2"></i>
+                <strong>Manager:</strong>
+                {% if analytics.group_info.manager_username %}
+                    {{ analytics.group_info.manager_username }}
+                {% else %}
+                    <span class="text-muted">Not assigned</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- KPI Cards -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-4">
+            <a href="{{ url_for('membership_management', group_id=analytics.group_info.group_id) }}" class="text-decoration-none">
+                <div class="card text-center h-100 hover-card" 
+                     data-bs-toggle="tooltip" 
+                     data-bs-placement="top"
+                     title="New members joined in last 30 days | Click to manage members">
+                    <div class="card-body">
+                        <i class="bi bi-person-plus-fill text-success" style="font-size: 2.5rem;"></i>
+                        <h2 class="mt-3 mb-1">{{ analytics.new_members_stats.new_members_30_days|round|int }}</h2>
+                        <p class="text-muted mb-0">New Members (30D)</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card text-center h-100 hover-card"
+                 data-bs-toggle="tooltip" 
+                 data-bs-placement="top"
+                 title="Average participation rate across all completed events">
+                <div class="card-body">
+                    <i class="bi bi-graph-up-arrow text-info" style="font-size: 2.5rem;"></i>
+                    <h2 class="mt-3 mb-1">{{ analytics.avg_participation_rate|round|int }}%</h2>
+                    <p class="text-muted mb-0">Avg Participation</p>
+                    <small class="text-muted" style="opacity: 0.6;"><i class="bi bi-info-circle me-1"></i>All completed events</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card text-center h-100 hover-card"
+                 data-bs-toggle="tooltip" 
+                 data-bs-placement="top"
+                 title="Total volunteer hours contributed in last 6 months">
+                <div class="card-body">
+                    <i class="bi bi-clock-fill text-danger" style="font-size: 2.5rem;"></i>
+                    <h2 class="mt-3 mb-1">{{ analytics.volunteer_hours_6m_stats.total_volunteer_hours_6m|round(1) }}</h2>
+                    <p class="text-muted mb-0">Volunteer Hours (6M)</p>
+                    <small class="text-muted" style="opacity: 0.6;"><i class="bi bi-calendar-range me-1"></i>{{ analytics.date_range_display }}</small>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+    
+    <!-- Charts -->
+    <div class="row g-3 mb-4">
+        <!-- Member Roles Chart -->
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-pie-chart-fill text-primary me-2"></i>Member Roles
+                        </h5>
+                        <span class="badge bg-primary">
+                            Total: {{ analytics.member_stats.total_members }}
+                        </span>
+                    </div>
+                    <p class="text-muted small mb-3">
+                        Distribution of member roles
+                    </p>
+                    <div style="height: 350px; position: relative;">
+                        <canvas id="memberRoleChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Event Status Chart -->
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-bar-chart-fill text-success me-2"></i>Event Status
+                        </h5>
+                        <span class="badge bg-primary">
+                            Total: {{ analytics.event_stats.total_events }}
+                        </span>
+                    </div>
+                    <p class="text-muted small mb-3">
+                        Overview of all events in this group
+                    </p>
+                    <div style="height: 350px; position: relative;">
+                        <canvas id="eventStatusChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    
+    <!-- Activity & Engagement Charts -->
+    <div class="row g-4 mb-5">
+        <!-- Member Activity Levels Chart -->
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm hover-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-activity text-success me-2"></i>Member Activity Levels
+                        </h5>
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="badge bg-primary">
+                                Total: {{ (analytics.activity_breakdown.very_active + analytics.activity_breakdown.active + analytics.activity_breakdown.moderate + analytics.activity_breakdown.low_activity) | int }}
+                            </span>
+                            <select id="activityPeriodSelect" class="form-select form-select-sm" style="width: auto;">
+                                <option value="last_month" {% if activity_period == 'last_month' %}selected{% endif %}>Last Month</option>
+                                <option value="last_3_months" {% if activity_period == 'last_3_months' %}selected{% endif %}>Last 3 Months</option>
+                            </select>
+                        </div>
+                    </div>
+                    <p class="text-muted small mb-3">
+                        Members grouped by their participation rate in completed events
+                    </p>
+                    <div style="height: 350px; position: relative;">
+                        <canvas id="activityChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Engagement Trends Chart -->
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm hover-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-graph-up text-info me-2"></i>Participant Attendance Trends
+                        </h5>
+                        <div class="d-flex align-items-center gap-3">
+                            {% if analytics.engagement_trend %}
+                            <span class="badge bg-primary">
+                                Total: {{ (analytics.engagement_trend|sum(attribute='attended_count')) | int }}
+                            </span>
+                            {% endif %}
+                            <select id="attendancePeriodSelect" class="form-select form-select-sm" style="width: auto;">
+                                <option value="last_3_months" {% if attendance_period == 'last_3_months' %}selected{% endif %}>Last 3 Months</option>
+                                <option value="last_6_months" {% if attendance_period == 'last_6_months' %}selected{% endif %}>Last 6 Months</option>
+                                <option value="last_year" {% if attendance_period == 'last_year' %}selected{% endif %}>Last Year</option>
+                            </select>
+                        </div>
+                    </div>
+                    <p class="text-muted small mb-3">
+                        Shows the number of unique participants who attended events each month
+                    </p>
+                    <div style="height: 350px; position: relative;">
+                        <canvas id="engagementChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Top Participants & Top Volunteers -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm hover-card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-trophy-fill text-warning me-2"></i>Top 5 Participants
+                    </h5>
+                    <small class="text-muted" style="opacity: 0.6;"><i class="bi bi-calendar-range me-1"></i>{{ analytics.date_range_display }}</small>
+                </div>
+                <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm table-enhanced">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="text-center" style="width: 20%;">Rank</th>
+                                    <th class="text-center" style="width: 50%;">Name</th>
+                                    <th class="text-center" style="width: 30%;">Events</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for participant in analytics.top_participants %}
+                                <tr>
+                                    <td class="text-center">
+                                        {% if loop.index <= 3 %}
+                                            <i class="bi bi-trophy-fill text-warning me-1"></i>{{ loop.index }}
+                                        {% else %}
+                                            {{ loop.index }}
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">{{ participant.full_name }}</td>
+                                    <td class="text-center">{{ participant.events_attended }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm hover-card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-heart-fill text-danger me-2"></i>Top 5 Volunteers
+                    </h5>
+                    <small class="text-muted" style="opacity: 0.6;"><i class="bi bi-calendar-range me-1"></i>{{ analytics.date_range_display }}</small>
+                </div>
+                <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm table-enhanced">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="text-center" style="width: 20%;">Rank</th>
+                                    <th class="text-center" style="width: 50%;">Name</th>
+                                    <th class="text-center" style="width: 30%;">Hours</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for volunteer in analytics.top_volunteers %}
+                                <tr>
+                                    <td class="text-center">
+                                        {% if loop.index <= 3 %}
+                                            <i class="bi bi-heart-fill text-danger me-1"></i>{{ loop.index }}
+                                        {% else %}
+                                            {{ loop.index }}
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">{{ volunteer.full_name }}</td>
+                                    <td class="text-center">{{ volunteer.volunteer_hours|round(1) }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Per-Event Participation Rates Table -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">
+                <i class="bi bi-graph-up text-info me-2"></i>Per-Event Participation Rates
+            </h5>
+            {% if analytics.participation_rates|length > 5 %}
+            <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#moreEvents" aria-expanded="false" aria-controls="moreEvents">
+                <i class="bi bi-chevron-down" id="toggleIcon"></i>
+                <span id="toggleText">Show All ({{ analytics.participation_rates|length }} events)</span>
+            </button>
+            {% endif %}
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Event</th>
+                            <th>Date</th>
+                            <th class="text-center">Total</th>
+                            <th class="text-center">Attended</th>
+                            <th class="text-center">No Show</th>
+                            <th class="text-center">Cancelled</th>
+                            <th class="text-center">Rate %</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for event in analytics.participation_rates[:5] %}
+                        <tr>
+                            <td>{{ event.event_title }}</td>
+                            <td>{{ event.event_date | nz_date }}</td>
+                            <td class="text-center">{{ event.total_participants }}</td>
+                            <td class="text-center">
+                                <span class="badge badge-ok">{{ event.attended_count }}</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge badge-warn">{{ event.no_show_count }}</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge badge-danger-soft">{{ event.cancelled_count }}</span>
+                            </td>
+                            <td class="text-center">
+                                {% set rate = event.participation_rate %}
+                                {% if rate >= 80 %}
+                                <span class="badge badge-ok">{{ rate }}%</span>
+                                {% elif rate >= 50 %}
+                                <span class="badge badge-warn">{{ rate }}%</span>
+                                {% else %}
+                                <span class="badge badge-danger-soft">{{ rate }}%</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    {% if analytics.participation_rates|length > 5 %}
+                    <tbody class="collapse" id="moreEvents">
+                        {% for event in analytics.participation_rates[5:] %}
+                        <tr>
+                            <td>{{ event.event_title }}</td>
+                            <td>{{ event.event_date | nz_date }}</td>
+                            <td class="text-center">{{ event.total_participants }}</td>
+                            <td class="text-center">
+                                <span class="badge badge-ok">{{ event.attended_count }}</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge badge-warn">{{ event.no_show_count }}</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge badge-danger-soft">{{ event.cancelled_count }}</span>
+                            </td>
+                            <td class="text-center">
+                                {% set rate = event.participation_rate %}
+                                {% if rate >= 80 %}
+                                <span class="badge badge-ok">{{ rate }}%</span>
+                                {% elif rate >= 50 %}
+                                <span class="badge badge-warn">{{ rate }}%</span>
+                                {% else %}
+                                <span class="badge badge-danger-soft">{{ rate }}%</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    
+
+<!-- Load Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+
+<script>
+// Register Chart.js plugins
+Chart.register(ChartDataLabels);
+
+// Member Roles Chart
+    var memberCanvas = document.getElementById('memberRoleChart');
+    var memberChart = new Chart(memberCanvas, {
+        type: 'doughnut',
+        data: {
+            labels: [
+                {% for role in analytics.role_distribution %}
+                '{{ role.role }}'{% if not loop.last %},{% endif %}
+                {% endfor %}
+            ],
+            datasets: [{
+                data: [
+                    {% for role in analytics.role_distribution %}
+                    {{ role.count }}{% if not loop.last %},{% endif %}
+                    {% endfor %}
+                ],
+                backgroundColor: ['#6c7a6f', '#ec7a08', '#1E5E32']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'right',
+                    labels: {
+                        font: {            
+                            size: 16        
+                        }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            var label = context.label || '';
+                            var value = context.parsed || 0;
+                            var total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            var percentage = ((value / total) * 100).toFixed(1);
+                            return label + ': ' + value + ' users (' + percentage + '%)';
+                        }
+                    }
+                },
+                datalabels: {
+                    display: true,
+                    color: 'white',
+                    font: {
+                        size: 14,
+                        weight: 'bold'
+                    },
+                    formatter: function(value, context) {
+                        var total = context.dataset.data.reduce((a, b) => a + b, 0);
+                        var percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                        return percentage + '%';
+                    }
+                }
+            }
+        }
+    });
+
+    // Event Status Chart
+    var eventCanvas = document.getElementById('eventStatusChart');
+    var eventChart = new Chart(eventCanvas, {
+        type: 'bar',
+        data: {
+            labels: ['All Events', 'Scheduled', 'Completed', 'Cancelled'],
+            datasets: [{
+                label: 'Number of Events',
+                data: [
+                    {{ analytics.event_stats.total_events or 0 }},
+                    {{ analytics.event_stats.scheduled_events or 0 }},
+                    {{ analytics.event_stats.completed_events or 0 }},
+                    {{ analytics.event_stats.cancelled_events or 0 }}
+                ],
+                backgroundColor: ['#006400', '#FF7F50', '#6A5ACD', '#c62828']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            var label = context.label || '';
+                            var value = context.parsed.y || 0;
+                            return label + ': ' + value + ' events';
+                        }
+                    }
+                },
+                datalabels: {
+                    display: true,
+                    color: 'white',
+                    font: {
+                        size: 16,
+                        weight: 'bold'
+                    },
+                    formatter: function(value) {
+                        return value;
+                    },
+                    anchor: 'center',
+                    align: 'center',
+                    offset: 0
+                }
+            },
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Event Status',
+                        font: {
+                            size: 14,
+                            weight: 'bold'
+                        }
+                    },
+                    ticks: {
+                        font: {
+                            size: 16
+                        },
+                        autoSkip: false
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Total Events (All Time)',
+                        font: {
+                            size: 14,
+                            weight: 'bold'
+                        }
+                    },
+                    beginAtZero: true,
+                    ticks: {
+                        font: {
+                            size: 16
+                        },
+                        stepSize: 1,
+                        callback: function(value) {
+                            return Math.round(value);
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+    // Member activity chart
+    var activityCanvas = document.getElementById('activityChart');
+    
+    // Set chart labels and data
+    var activityLabels = ['Very Active', 'Active', 'Moderate', 'Inactive'];
+    var activityData = [
+        {{ analytics.activity_breakdown.very_active or 0 }},
+        {{ analytics.activity_breakdown.active or 0 }},
+        {{ analytics.activity_breakdown.moderate or 0 }},
+        {{ analytics.activity_breakdown.low_activity or 0 }}
+    ];
+    var activityColors = ['#1E5E32', '#ec7a08', '#6c7a6f', '#c62828'];
+    
+    // Only show items with data
+    var showLabels = [];
+    var showData = [];
+    var showColors = [];
+    
+    for (var i = 0; i < activityData.length; i++) {
+        if (activityData[i] > 0) {
+            showLabels.push(activityLabels[i]);
+            showData.push(activityData[i]);
+            showColors.push(activityColors[i]);
+        }
+    }
+    
+    var activityChart = new Chart(activityCanvas, {
+        type: 'bar',
+        data: {
+            labels: showLabels,
+            datasets: [{
+                label: 'Number of Members',
+                data: showData,
+                backgroundColor: showColors,
+                borderColor: showColors,
+                borderWidth: 1
+            }]
+        },
+        options: {
+            indexAxis: 'y', // Horizontal bar chart
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false // No legend needed
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            var label = context.label || '';
+                            var value = context.parsed.x || 0;
+                            return label + ': ' + value + ' members';
+                        }
+                    }
+                },
+                datalabels: {
+                    display: true,
+                    color: 'white',
+                    font: {
+                        size: 14,
+                        weight: 'bold'
+                    },
+                    formatter: function(value, context) {
+                        return value;
+                    },
+                    anchor: 'center',
+                    align: 'center'
+                }
+            },
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Number of Members',
+                        font: {
+                            size: 14,
+                            weight: 'bold'
+                        }
+                    },
+                    ticks: {
+                        font: {
+                            size: 14
+                        },
+                        stepSize: 1
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Activity Level',
+                        font: {
+                            size: 14,
+                            weight: 'bold'
+                        }
+                    },
+                    ticks: {
+                        font: {
+                            size: 14
+                        },
+                        callback: function(value, index, ticks) {
+                            // Set Y-axis labels
+                            var labels = ['Very Active\n(≥80%)', 'Active\n(50-79%)', 'Moderate\n(20-49%)', 'Inactive\n(<20%)'];
+                            return labels[index] || value;
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+    
+    var engagementCanvas = document.getElementById('engagementChart');
+    var engagementChart = new Chart(engagementCanvas, {
+        type: 'line',
+        data: {
+            labels: [
+                {% for trend in analytics.engagement_trends %}
+                {{ trend.month|tojson }}{% if not loop.last %},{% endif %}
+                {% endfor %}
+            ],
+            datasets: [{
+                label: 'Unique Participants Attended',
+                data: [
+                    {% for trend in analytics.engagement_trends %}
+                    {{ trend.attended_count or 0 }}{% if not loop.last %},{% endif %}
+                    {% endfor %}
+                ],
+                borderColor: '#2e7d32',
+                backgroundColor: 'rgba(46, 125, 50, 0.1)',
+                borderWidth: 3,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        font: {
+                            size: 16
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Month',
+                        font: {
+                            size: 14,
+                            weight: 'bold'
+                        }
+                    },
+                    ticks: {
+                        font: {
+                            size: 16
+                        },
+                        autoSkip: false
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Number of Unique Participants',
+                        font: {
+                            size: 14,
+                            weight: 'bold'
+                        }
+                    },
+                    beginAtZero: true,
+                    ticks: {
+                        font: {
+                            size: 16
+                        },
+                        stepSize: 1,
+                        callback: function(value) {
+                            return Math.round(value);
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+    // Handle collapse toggle for events table and period filter
+    document.addEventListener('DOMContentLoaded', function() {
+        // Make all cards show tooltips
+        var allCards = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+        for (var i = 0; i < allCards.length; i++) {
+            new bootstrap.Tooltip(allCards[i]);
+        }
+        var collapseElement = document.getElementById('moreEvents');
+        var toggleButton = document.querySelector('[data-bs-target="#moreEvents"]');
+        
+        if (collapseElement && toggleButton) {
+            var toggleIcon = toggleButton.querySelector('#toggleIcon');
+            var toggleText = toggleButton.querySelector('#toggleText');
+            var totalEvents = {{ analytics.participation_rates|length }};
+            
+            collapseElement.addEventListener('show.bs.collapse', function () {
+                toggleIcon.classList.remove('bi-chevron-down');
+                toggleIcon.classList.add('bi-chevron-up');
+                toggleText.textContent = 'Show Less';
+            });
+            
+            collapseElement.addEventListener('hide.bs.collapse', function () {
+                toggleIcon.classList.remove('bi-chevron-up');
+                toggleIcon.classList.add('bi-chevron-down');
+                toggleText.textContent = 'Show All (' + totalEvents + ' events)';
+            });
+        }
+        
+        // Handle period filter change for activity charts (separate filters)
+        const activitySelect = document.getElementById('activityPeriodSelect');
+        const attendanceSelect = document.getElementById('attendancePeriodSelect');
+        
+        if (activitySelect) {
+            activitySelect.addEventListener('change', function() {
+                const activityPeriod = this.value;
+                const url = new URL(window.location.href);
+                url.searchParams.set('activity_period', activityPeriod);
+                // Keep attendance_period unchanged
+                if (!url.searchParams.has('attendance_period')) {
+                    url.searchParams.set('attendance_period', '{{ attendance_period }}');
+                }
+                window.location.href = url.toString();
+            });
+        }
+        
+        if (attendanceSelect) {
+            attendanceSelect.addEventListener('change', function() {
+                const attendancePeriod = this.value;
+                const url = new URL(window.location.href);
+                url.searchParams.set('attendance_period', attendancePeriod);
+                // Keep activity_period unchanged
+                if (!url.searchParams.has('activity_period')) {
+                    url.searchParams.set('activity_period', '{{ activity_period }}');
+                }
+                window.location.href = url.toString();
+            });
+        }
+    });
+
+</script>
+
+{% endblock %}
